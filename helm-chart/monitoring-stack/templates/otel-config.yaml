@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/component: opentelemetry-collector
+    app.kubernetes.io/name: otel-collector
+data:
+  collector.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    exporters:
+      otlphttp:
+        endpoint: http://monitoring-stack-loki:3100/otlp
+      debug:
+        verbosity: detailed
+    processors:
+      batch:
+        timeout: 1s
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 1000
+      resourcedetection:
+        detectors: [env]
+      resource:
+        attributes: [
+          {key: service.name, value: magic-xpi},
+          {key: deployment.environment, value: production}
+        ]
+    service:
+      pipelines:
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, resourcedetection, resource, batch]
+          exporters: [otlphttp, debug]

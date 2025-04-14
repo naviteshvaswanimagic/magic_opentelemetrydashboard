@@ -1,0 +1,44 @@
+🎉 Your OpenTelemetry Monitoring Stack has been successfully deployed!
+
+To view running pods:
+  kubectl get pods -n {{ .Release.Namespace }}
+
+To check services (especially LoadBalancer IPs):
+  kubectl get svc -n {{ .Release.Namespace }}
+
+🚪 External Access (via LoadBalancer IPs):
+
+The following services are exposed externally:
+
+- 🌐 Grafana (Dashboards UI):
+    Service: monitoring-stack-grafana
+    URL: http://<EXTERNAL-IP>:3000
+
+- 📥 Loki Reader (Log aggregation):
+    Service: loki-reader-service
+    URL: http://<EXTERNAL-IP>:3100
+
+- 📊 Prometheus Pushgateway (Push metrics):
+    Service: prometheus-pushgateway
+    URL: http://<EXTERNAL-IP>:9091
+
+- 🛰️ OpenTelemetry Collector (Traces & metrics input):
+    Service: otel-collector
+    URL: http://<EXTERNAL-IP>:4317
+
+🧠 Default Grafana Login:
+  Username: {{ .Values.grafana.adminUser | default "admin" }}
+  Password: {{ .Values.grafana.adminPassword | default "admin" }}
+
+🔧 To upgrade the stack after config changes:
+  helm upgrade <release-name> . -f prometheus-values.yaml
+
+🧹 To uninstall:
+  ./uninstall_monitoring_stack.bat
+  # or
+  helm uninstall <release-name> -n {{ .Release.Namespace }}
+
+📘 Tip:
+Use `kubectl get svc -n {{ .Release.Namespace }}` to copy actual IPs after deployment.
+
+🚀 Happy Monitoring!

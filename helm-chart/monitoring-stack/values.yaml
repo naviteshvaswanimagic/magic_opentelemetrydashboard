@@ -1,0 +1,294 @@
+namespace: monitoring
+
+lokiReader:
+  enabled: true
+  name: loki-reader
+  image:
+    repository: ghcr.io/indking/loki-reader
+    tag: latest
+    pullPolicy: Always
+  replicaCount: 1
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "80"
+      prometheus.io/path: "/metrics"
+  
+
+  # Pod Security Context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  
+  # Container Security Context
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+
+  # Labels and annotations
+  labels:
+    app.kubernetes.io/name: loki-reader
+    app.kubernetes.io/instance: monitoring-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/part-of: monitoring-stack
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "80"
+    prometheus.io/path: "/metrics"
+
+  # Application configuration
+  config:
+    # Loki configuration
+    Loki_SERVER_HOST: "monitoring-stack-loki"
+    Loki_SERVER_PORT: "3100"
+    
+    # Prometheus configuration
+    PROMETHEUS_GATEWAY: "http://monitoring-stack-prometheus-pushgateway:9091"
+    PROMETHEUS_JOB_NAME: "summary_metrics"
+    
+    # Application settings
+    MAX_WORKERS: "10"
+    ERROR_TIMEOUT_HOURS: "1"
+    UNRESPONSIVE_TIMEOUT_MINUTES: "5"
+    RESET_TIMEOUT_HOURS: "3"
+    
+    # Logging configuration
+    LOG_LEVEL: "INFO"
+    LOG_DIR: "logs"
+    LOG_MAX_BYTES: "10485760"
+    LOG_BACKUP_COUNT: "5"
+    ENABLE_CONSOLE_LOG: "true"
+
+  # Volume configuration
+  volumes:
+    logs:
+      mountPath: /app/logs
+      emptyDir: {}
+
+  # Pod Disruption Budget
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+  # Pod Anti-Affinity
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - loki-reader
+            topologyKey: kubernetes.io/hostname
+
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClassName: microk8s-hostpath
+    accessModes:
+      - ReadWriteOnce
+    annotations:
+      "helm.sh/resource-policy": "delete"
+
+loki-stack:
+  promtail:
+    config:
+      clients:
+        - url: http://monitoring-stack-loki:3100/loki/api/v1/push
+  loki:
+    image:
+      repository: grafana/loki
+      tag: 2.9.2
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClassName: microk8s-hostpath
+      accessModes:
+        - ReadWriteOnce
+      annotations:
+        "helm.sh/resource-policy": "delete"
+      finalizers:
+        - kubernetes.io/pvc-protection
+    readinessProbe:
+      initialDelaySeconds: 120
+      timeoutSeconds: 3
+      periodSeconds: 30
+    livenessProbe:
+      initialDelaySeconds: 120
+      timeoutSeconds: 3
+      periodSeconds: 30
+    config:
+      auth_enabled: false
+      server:
+        http_listen_port: 3100
+      storage_config:
+        filesystem:
+          directory: /data/loki/chunks
+      ruler:
+        rule_path: /data/loki/rules
+        storage:
+          type: local
+          local:
+            directory: /data/loki/rules
+        enable_api: true
+    service:
+      type: ClusterIP
+  grafana:
+    enabled: false
+    testFramework:
+      enabled: false
+      image:
+        repository: ""
+        tag: ""
+
+prometheus:
+  enabled: true
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/allow-shared-ip: monitoring-stack
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: microk8s-hostpath
+    annotations:
+      "helm.sh/resource-policy": "delete"
+  server:
+    retention: 15d
+    persistentVolume:
+      enabled: true
+      size: 10Gi
+      storageClassName: microk8s-hostpath
+      annotations:
+        "helm.sh/resource-policy": "delete"
+    global:
+      scrape_interval: 1m
+      evaluation_interval: 1m
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+      - job_name: 'loki'
+        static_configs:
+          - targets: ['monitoring-stack-loki:3100']
+      - job_name: 'pushgateway'
+        static_configs:
+          - targets: ['monitoring-stack-prometheus-pushgateway:9091']
+  alertmanager:
+    enabled: true
+    extraEnv: []
+  pushgateway:
+    enabled: true
+
+nodeExporter:
+  enabled: true
+  hostRootFsMount:
+    enabled: false
+  extraArgs: []
+  extraHostPathMounts: []
+  scrape_configs:
+    - job_name: 'kubernetes-nodes'
+      kubernetes_sd_configs:
+        - role: node
+    - job_name: 'loki'
+      static_configs:
+        - targets: ['monitoring-stack-loki:3100']
+    - job_name: 'pushgateway'
+      static_configs:
+        - targets: ['prometheus-pushgateway:9091']
+
+grafana:
+  enabled: true
+  image:
+    tag: "11.6.0"
+  adminPassword: admin123
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/allow-shared-ip: monitoring-stack
+    port: 3000
+  persistence:
+    enabled: true
+    size: 1Gi
+    annotations:
+      "helm.sh/resource-policy": "delete"
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Loki
+          type: loki
+          url: http://monitoring-stack-loki:3100
+          access: proxy
+          isDefault: false
+          uid: loki
+          jsonData:
+            maxLines: 1000
+            timeout: 30
+            derivedFields: []
+          secureJsonData: {}
+          version: 1
+          readOnly: false
+        - name: Prometheus
+          type: prometheus
+          url: http://monitoring-stack-prometheus-server
+          access: proxy
+          isDefault: true
+          uid: prometheus
+        - name: alertmanager
+          type: alertmanager
+          access: proxy
+          isDefault: false
+          uid: alertmanager
+          jsonData:
+            implementation: prometheus
+            url: http://monitoring-stack-alertmanager:9093
+  
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /etc/grafana/dashboards  
+
+  extraVolumes:
+    - name: grafana-dashboards
+      configMap:
+        name: grafana-dashboards
+
+  extraVolumeMounts:
+    - name: grafana-dashboards
+      mountPath: /etc/grafana/dashboards
+      readOnly: false
+
+  sidecar:
+    dashboards:
+      enabled: false  
+
+  plugins:
+    - grafana-polystat-panel
+  grafana.ini:
+    plugins:
+      allow_loading_unsigned_plugins: grafana-polystat-panel
+  env:
+    GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: "grafana-polystat-panel"
+

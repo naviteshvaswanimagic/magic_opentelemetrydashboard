@@ -1,0 +1,25 @@
+{{- if .Values.lokiReader.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.lokiReader.name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ .Values.lokiReader.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  Loki_SERVER_HOST: {{ .Values.lokiReader.config.Loki_SERVER_HOST | default "monitoring-stack-loki" | quote }}
+  Loki_SERVER_PORT: {{ .Values.lokiReader.config.Loki_SERVER_PORT | default "3100" | quote }}
+  PROMETHEUS_GATEWAY: {{ .Values.lokiReader.config.PROMETHEUS_GATEWAY | default "http://monitoring-stack-prometheus-pushgateway:9091" | quote }}
+  PROMETHEUS_JOB_NAME: {{ .Values.lokiReader.config.PROMETHEUS_JOB_NAME | default "summary_metrics" | quote }}
+  MAX_WORKERS: {{ .Values.lokiReader.config.MAX_WORKERS | default "10" | quote }}
+  ERROR_TIMEOUT_HOURS: {{ .Values.lokiReader.config.ERROR_TIMEOUT_HOURS | default "1" | quote }}
+  UNRESPONSIVE_TIMEOUT_MINUTES: {{ .Values.lokiReader.config.UNRESPONSIVE_TIMEOUT_MINUTES | default "5" | quote }}
+  RESET_TIMEOUT_HOURS: {{ .Values.lokiReader.config.RESET_TIMEOUT_HOURS | default "3" | quote }}
+  LOG_LEVEL: {{ .Values.lokiReader.config.LOG_LEVEL | default "INFO" | quote }}
+  LOG_DIR: {{ .Values.lokiReader.config.LOG_DIR | default "logs" | quote }}
+  LOG_MAX_BYTES: {{ .Values.lokiReader.config.LOG_MAX_BYTES | default "10485760" | quote }}
+  LOG_BACKUP_COUNT: {{ .Values.lokiReader.config.LOG_BACKUP_COUNT | default "5" | quote }}
+  ENABLE_CONSOLE_LOG: {{ .Values.lokiReader.config.ENABLE_CONSOLE_LOG | default "true" | quote }}
+{{- end }}
