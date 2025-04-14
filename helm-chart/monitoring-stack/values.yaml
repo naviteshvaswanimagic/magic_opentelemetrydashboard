@@ -253,9 +253,10 @@ grafana:
           access: proxy
           isDefault: false
           uid: alertmanager
+          url: http://monitoring-stack-alertmanager:9093
           jsonData:
             implementation: prometheus
-            url: http://monitoring-stack-alertmanager:9093
+
   
   dashboardProviders:
     dashboardproviders.yaml:

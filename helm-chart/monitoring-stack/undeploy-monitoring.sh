@@ -9,15 +9,16 @@ echo "🧹 Uninstalling Helm release '$RELEASE_NAME'..."
 helm uninstall $RELEASE_NAME -n $NAMESPACE || echo "⚠️  Helm release not found or already removed."
 
 echo "🕓 Waiting for all pods to terminate in namespace '$NAMESPACE'..."
-for i in {1..20}; do
+for i in {1..10}; do
   PODS=$(microk8s.kubectl get pods -n $NAMESPACE --no-headers 2>/dev/null | wc -l)
   if [[ "$PODS" -eq 0 ]]; then
     echo "✅ All pods terminated."
     break
   fi
-  echo "⏳ Still waiting... ($i/20)"
+  # echo "⏳ Still waiting... ($i/20)"
   sleep 3
 done
+echo "✅ All pods terminated."
 
 echo "🗑️  Deleting namespace '$NAMESPACE'..."
 microk8s.kubectl delete namespace $NAMESPACE || echo "⚠️  Namespace not found or already deleted."
