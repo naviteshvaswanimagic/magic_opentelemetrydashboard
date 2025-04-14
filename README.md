@@ -179,6 +179,81 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+
+# Helm Chart - Otel Loki Reader Monitoring Stack
+
+This Helm chart deploys a complete OpenTelemetry-based monitoring stack integrated with Loki and Prometheus. It includes components like Grafana, Loki, Promtail, Pushgateway, Prometheus, and a custom Loki Reader application that transforms logs into Prometheus metrics.
+
+## Prerequisites
+Kubernetes Cluster (MicroK8s, Minikube, etc.)
+Helm v3 or higher
+MetalLB (for LoadBalancer support if using MicroK8s)
+
+## Components
+Grafana: Dashboards UI
+Prometheus: Metrics collection
+Alertmanager: Alerting system
+Loki: Log storage backend
+Promtail: Log shipping agent
+Pushgateway: Push metrics endpoint
+Otel-Collector: Ingest metrics, logs, and traces
+Loki Reader: Converts logs to Prometheus metrics
+
+## Installation
+Clone the repository:
+git clone https://github.com/naviteshvaswanimagic/magic_opentelemetrydashboard.git cd Otel-Loki-Reader/helm_chart/monitoring-stack
+
+## Deploy the chart using:
+
+./deploy-monitoring.sh
+
+Or with 
+
+## plain Helm:
+
+helm install monitoring-stack . -n monitoring --create-namespace
+
+## Post-Installation
+To verify that everything is running:
+kubectl get pods -n monitoring
+kubectl get svc -n monitoring
+
+## External Access
+Use the following commands to retrieve the service IPs:
+
+Grafana (Dashboards UI):
+kubectl get svc -n monitoring -l app.kubernetes.io/name=grafana
+
+Loki Reader (Log aggregation):
+kubectl get svc -n monitoring -l app=loki-reader
+
+Prometheus Pushgateway:
+kubectl get svc -n monitoring -l app=prometheus-pushgateway
+
+OpenTelemetry Collector:
+kubectl get svc -n monitoring -l app.kubernetes.io/name=otel-collector
+
+## Grafana Login
+Username: admin
+Password: admin123
+
+## Customization
+You can customize the deployment by editing the values.yaml file or setting values inline:
+helm install monitoring-stack . -n monitoring -f values.yaml
+
+## Upgrade
+To upgrade the stack after making changes:
+helm upgrade monitoring-stack . -n monitoring
+
+## Uninstall
+To remove all components:
+./undeploy-monitoring.sh
+
+Or use 
+
+## Helm directly:
+helm uninstall monitoring-stack -n monitoring
+
 ## 📜 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
