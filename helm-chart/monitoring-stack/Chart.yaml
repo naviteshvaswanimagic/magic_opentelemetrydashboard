@@ -2,7 +2,7 @@ apiVersion: v2
 name: monitoring-stack
 description: A Helm chart for deploying Loki, Prometheus, OpenTelemetry, and Grafana.
 type: application
-version: 0.1.2
+version: 0.1.4
 appVersion: "1.16.0"
 
 dependencies:

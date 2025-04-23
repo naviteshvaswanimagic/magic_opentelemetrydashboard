@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+data:
+  # Storage configuration
+  STORAGE_CLASS: {{ .Values.storage.storageClass | default "standard" | quote }}
+  
+  # Service configuration
+  SERVICE_TYPE: {{ .Values.service.type | default "ClusterIP" | quote }}
+  
+  # Loki configuration
+  LOKI_SERVER_HOST: {{ .Values.loki.serverHost | quote }}
+  LOKI_SERVER_PORT: {{ .Values.loki.serverPort | toString | quote }}
+  
+  # Prometheus configuration
+  PROMETHEUS_GATEWAY: {{ .Values.prometheus.gateway | quote }}
+  PROMETHEUS_JOB_NAME: {{ .Values.prometheus.jobName | quote }}
+  
+  # Application settings
+  MAX_WORKERS: {{ .Values.app.maxWorkers | toString | quote }}
+  ERROR_TIMEOUT_HOURS: {{ .Values.app.errorTimeoutHours | toString | quote }}
+  UNRESPONSIVE_TIMEOUT_MINUTES: {{ .Values.app.unresponsiveTimeoutMinutes | toString | quote }}
+  RESET_TIMEOUT_HOURS: {{ .Values.app.resetTimeoutHours | toString | quote }}
+  
+  # Logging configuration
+  LOG_LEVEL: {{ .Values.logging.level | quote }}
+  LOG_DIR: {{ .Values.logging.dir | quote }}
+  LOG_MAX_BYTES: {{ .Values.logging.maxBytes | toString | quote }}
+  LOG_BACKUP_COUNT: {{ .Values.logging.backupCount | toString | quote }}
+  # Convert boolean values to strings in the ConfigMap data
+  ENABLE_CONSOLE_LOG: {{ .Values.logging.enableConsole | toString | quote }}

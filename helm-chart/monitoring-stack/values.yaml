@@ -1,5 +1,107 @@
 namespace: monitoring
 
+# Global settings
+global:
+  environment: production  # Can be overridden per environment
+  cluster: default        # Can be overridden per environment
+
+# Storage configuration
+storage:
+  # Will be overridden by platform-specific values
+  storageClass: "" 
+  size: 10Gi
+
+# Service configuration
+service:
+  # Will be overridden by platform-specific values
+  type: ClusterIP  
+  annotations: {}
+
+# Loki configuration
+loki:
+  serverHost: monitoring-stack-loki
+  serverPort: 3100
+  retention: 24h
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi
+      cpu: 200m
+
+# Prometheus configuration
+prometheus:
+  enabled: true
+  service:
+    type: LoadBalancer
+    annotations: {} # Will be overridden by platform-specific values
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: "" # Will be overridden by platform-specific values
+    annotations: {}
+  gateway: http://monitoring-stack-prometheus-pushgateway:9091
+  jobName: summary_metrics
+  retention: 15d
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi
+      cpu: 200m
+
+# Application settings
+app:
+  maxWorkers: 10
+  errorTimeoutHours: 1
+  unresponsiveTimeoutMinutes: 5
+  resetTimeoutHours: 3
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi
+      cpu: 200m
+
+# Logging configuration
+logging:
+  level: INFO
+  dir: logs
+  maxBytes: 10485760  # 10MB
+  backupCount: 5
+  enableConsole: true
+
+# Pod disruption budget
+pdb:
+  minAvailable: 1
+
+# Security context
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Node selector and tolerations
+nodeSelector: {}
+tolerations: []
+
+# Affinity rules
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - monitoring-stack
+        topologyKey: kubernetes.io/hostname
+
 lokiReader:
   enabled: true
   name: loki-reader
@@ -105,9 +207,67 @@ lokiReader:
 
 loki-stack:
   promtail:
+    image:
+      registry: docker.io
+      repository: grafana/promtail
+      tag: "2.9.2"
+      pullPolicy: IfNotPresent
+    daemonset:
+      enabled: true
+      useHostPid: false
+      useHostNetwork: false
+    tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - operator: Exists
+    securityContext:  # Add securityContext for AKS
+      privileged: true
+      runAsUser: 0
+      runAsGroup: 0
+    volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibcontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: run
+        hostPath:
+          path: /run/promtail
+    volumeMounts:
+      - name: varlog
+        mountPath: /var/log
+      - name: varlibcontainers
+        mountPath: /var/lib/docker/containers
+        readOnly: true
+      - name: run
+        mountPath: /run/promtail
+    extraVolumes: []
+    extraVolumeMounts: []
     config:
+      serverPort: 3101
+      positions:
+        filename: /run/promtail/positions.yaml
       clients:
         - url: http://monitoring-stack-loki:3100/loki/api/v1/push
+      scrapeConfigs:
+        - job_name: kubernetes-pods-name
+          kubernetes_sd_configs:
+            - role: pod
+          pipeline_stages:
+            - docker: {}
+          relabel_configs:
+            - source_labels: ['__meta_kubernetes_pod_node_name']
+              target_label: '__host__'
+            - source_labels: ['__meta_kubernetes_namespace']
+              target_label: 'namespace'
+            - source_labels: ['__meta_kubernetes_pod_name']
+              target_label: 'pod'
+    persistence:
+      enabled: true
+      size: 2Gi
+      storageClassName: "" # Will be overridden by platform-specific values
   loki:
     image:
       repository: grafana/loki
@@ -115,7 +275,7 @@ loki-stack:
     persistence:
       enabled: true
       size: 10Gi
-      storageClassName: microk8s-hostpath
+      storageClassName: "" # Will be overridden by platform-specific values
       accessModes:
         - ReadWriteOnce
       annotations:
@@ -151,21 +311,19 @@ loki-stack:
     testFramework:
       enabled: false
       image:
-        repository: ""
-        tag: ""
+        repository: bats/bats
+        tag: v1.4.1
 
 prometheus:
   enabled: true
   service:
     type: LoadBalancer
-    annotations:
-      metallb.universe.tf/allow-shared-ip: monitoring-stack
+    annotations: {} # Will be overridden by platform-specific values
   persistence:
     enabled: true
     size: 10Gi
-    storageClass: microk8s-hostpath
-    annotations:
-      "helm.sh/resource-policy": "delete"
+    storageClass: "" # Will be overridden by platform-specific values
+    annotations: {}
   server:
     retention: 15d
     persistentVolume:
@@ -212,6 +370,14 @@ nodeExporter:
 
 grafana:
   enabled: true
+  service:
+    type: LoadBalancer
+    annotations: {} # Will be overridden by platform-specific values
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: "" # Will be overridden by platform-specific values
+    annotations: {}
   image:
     tag: "11.6.0"
   adminPassword: admin123
@@ -256,7 +422,6 @@ grafana:
           url: http://monitoring-stack-alertmanager:9093
           jsonData:
             implementation: prometheus
-
   
   dashboardProviders:
     dashboardproviders.yaml:
@@ -288,8 +453,10 @@ grafana:
   plugins:
     - grafana-polystat-panel
   grafana.ini:
+    users:
+      default_theme: light
     plugins:
-      allow_loading_unsigned_plugins: grafana-polystat-panel
+      allow_loading_unsigned_plugins: "grafana-polystat-panel"
   env:
     GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: "grafana-polystat-panel"
 

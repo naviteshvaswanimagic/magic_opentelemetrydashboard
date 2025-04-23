@@ -1,0 +1,170 @@
+# Azure AKS specific overrides for production environment
+
+# Global settings
+global:
+  environment: production
+  cluster: prod-cluster
+
+# Storage configuration for all components
+storage:
+  storageClass: "managed-premium"  # Azure Premium SSD storage class
+
+# Service configuration for all components
+service:
+  type: LoadBalancer
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "aks-subnet"  # Replace with your subnet name
+
+# Node selector and tolerations for all components
+nodeSelector:
+  kubernetes.io/os: linux
+  agentpool: production  # AKS node pool name
+tolerations:
+- key: "CriticalAddonsOnly"
+  operator: "Exists"
+- key: "node-role.kubernetes.io/master"
+  operator: "Exists"
+  effect: "NoSchedule"
+
+# Image pull secrets for ACR
+imagePullSecrets:
+- name: acr-secret
+
+# Container registry configuration for all components
+image:
+  registry: ${ACR_NAME}.azurecr.io
+  pullPolicy: Always
+
+# Azure-specific resource tags
+tags:
+  Environment: production
+  Platform: aks
+  ManagedBy: helm
+
+# Override specific component settings if needed
+loki-stack:
+  loki:
+    persistence:
+      storageClassName: managed-premium # Azure's premium storage class
+    service:
+      type: ClusterIP  # Keep Loki internal
+      port: 3100
+  promtail:
+    persistence:
+      storageClassName: managed-premium
+    # Remove image configuration to use base values
+    serviceAccount:
+      create: true
+      annotations:
+        azure.workload.identity/client-id: ${AZURE_CLIENT_ID}
+    rbac:
+      create: true
+    securityContext:
+      privileged: true
+      runAsUser: 0
+      runAsGroup: 0
+    volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+          type: Directory
+      - name: containers
+        hostPath:
+          path: /var/log/containers
+          type: Directory
+      - name: pods
+        hostPath:
+          path: /var/log/pods
+          type: Directory
+      - name: run
+        hostPath:
+          path: /run/promtail
+          type: DirectoryOrCreate
+    volumeMounts:
+      - name: varlog
+        mountPath: /var/log
+      - name: containers
+        mountPath: /var/log/containers
+        readOnly: true
+      - name: pods
+        mountPath: /var/log/pods
+        readOnly: true
+      - name: run
+        mountPath: /run/promtail
+    config:
+      positions:
+        filename: /run/promtail/positions.yaml
+      clients:
+        - url: http://monitoring-stack-loki:3100/loki/api/v1/push
+      scrape_configs:
+        - job_name: container_logs
+          static_configs:
+            - targets:
+                - localhost
+              labels:
+                job: container_logs
+                __path__: /var/log/containers/*.log
+          pipeline_stages:
+            - docker: {}
+        - job_name: pod_logs
+          static_configs:
+            - targets:
+                - localhost
+              labels:
+                job: pod_logs
+                __path__: /var/log/pods/*/*.log
+          pipeline_stages:
+            - docker: {}
+    service:
+      type: ClusterIP  # Keep Promtail internal
+
+prometheus:
+  persistence:
+    storageClass: "managed-premium"
+  server:
+    persistence:
+      storageClassName: managed-premium
+  service:
+    type: LoadBalancer
+    annotations: {}
+    ports:
+      - name: http
+        port: 9090
+        targetPort: 9090
+        protocol: TCP
+  alertmanager:
+    persistence:
+      storageClassName: managed-premium
+  pushgateway:
+    persistence:
+      storageClassName: managed-premium
+
+grafana:
+  persistence:
+    storageClass: "managed-premium"
+  service:
+    type: LoadBalancer
+    annotations: {}
+    ports:
+      - name: http
+        port: 3000
+        targetPort: 3000
+        protocol: TCP
+
+otel-collector:
+  service:
+    type: ClusterIP
+    ports:
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+        protocol: TCP
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+        protocol: TCP
+      - name: metrics
+        port: 8888
+        targetPort: 8888
+        protocol: TCP

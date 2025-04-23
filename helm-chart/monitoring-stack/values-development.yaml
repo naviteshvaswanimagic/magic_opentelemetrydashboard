@@ -1,0 +1,86 @@
+# Development environment specific values
+
+# Global settings
+global:
+  environment: development
+  cluster: dev-cluster
+
+# Storage configuration
+storage:
+  storageClass: standard
+  size: 10Gi
+
+# Service configuration
+service:
+  type: ClusterIP
+  annotations: {}
+
+# Loki configuration
+loki:
+  server:
+    host: loki-server
+    port: 3100
+  retention: 24h
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Prometheus configuration
+prometheus:
+  gateway:
+    url: http://prometheus-server:9090
+  jobName: monitoring-stack
+  retention: 7d
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# Application settings
+app:
+  maxWorkers: 2
+  timeout: 30s
+
+# Logging configuration
+logging:
+  level: debug
+  directory: /var/log/monitoring
+  maxBytes: 10485760  # 10MB
+  backupCount: 5
+  console:
+    enable: true
+
+# Pod disruption budget
+podDisruptionBudget:
+  minAvailable: 1
+
+# Security context
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Node selector and tolerations
+nodeSelector: {}
+tolerations: []
+
+# Affinity rules
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - monitoring-stack
+        topologyKey: kubernetes.io/hostname 

@@ -1,0 +1,77 @@
+# AWS EKS specific overrides for production environment
+
+# Global settings
+global:
+  environment: production
+  cluster: prod-cluster
+
+# Storage configuration for all components
+storage:
+  storageClass: "gp2"  # AWS EBS GP2 storage class
+
+# Service configuration for all components
+service:
+  type: LoadBalancer
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+
+# Node selector and tolerations for all components
+nodeSelector:
+  kubernetes.io/os: linux
+  node-type: production
+tolerations:
+- key: "dedicated"
+  operator: "Equal"
+  value: "production"
+  effect: "NoSchedule"
+
+# Image pull secrets for ECR
+imagePullSecrets:
+- name: ecr-secret
+
+# Container registry configuration for all components
+image:
+  registry: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+  pullPolicy: Always
+
+# AWS-specific resource tags
+tags:
+  Environment: production
+  Platform: eks
+  ManagedBy: helm
+
+# Override specific component settings if needed
+loki-stack:
+  loki:
+    persistence:
+      storageClassName: gp2
+  promtail:
+    image:
+      registry: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+
+prometheus:
+  persistence:
+    storageClass: "gp2"
+  server:
+    persistence:
+      storageClassName: gp2
+  service:
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+      service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+  alertmanager:
+    persistence:
+      storageClassName: gp2
+  pushgateway:
+    persistence:
+      storageClassName: gp2
+
+grafana:
+  persistence:
+    storageClass: "gp2"
+  service:
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+      service.beta.kubernetes.io/aws-load-balancer-internal: "true"

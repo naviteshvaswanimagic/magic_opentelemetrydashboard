@@ -1,0 +1,93 @@
+# Production environment specific values
+
+# Global settings
+global:
+  environment: production
+  cluster: prod-cluster
+
+# Storage configuration
+storage:
+  storageClass: ""  # Will use default storage class of the cluster
+  size: 50Gi
+
+# Service configuration
+service:
+  type: LoadBalancer
+  annotations: {}  # Platform-specific annotations can be added in environment-specific overrides
+
+# Loki configuration
+loki:
+  server:
+    host: loki-server
+    port: 3100
+  retention: 168h  # 7 days
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+# Prometheus configuration
+prometheus:
+  gateway:
+    url: http://prometheus-server:9090
+  jobName: monitoring-stack
+  retention: 30d
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+
+# Application settings
+app:
+  maxWorkers: 4
+  timeout: 60s
+
+# Logging configuration
+logging:
+  level: info
+  directory: /var/log/monitoring
+  maxBytes: 52428800  # 50MB
+  backupCount: 10
+  console:
+    enable: false
+
+# Pod disruption budget
+podDisruptionBudget:
+  minAvailable: 2
+
+# Security context
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Node selector and tolerations
+nodeSelector:
+  kubernetes.io/os: linux
+tolerations: []  # Platform-specific tolerations can be added in environment-specific overrides
+
+# Affinity rules
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: app.kubernetes.io/name
+          operator: In
+          values:
+          - monitoring-stack
+      topologyKey: kubernetes.io/hostname
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: node-type
+          operator: In
+          values:
+          - production 

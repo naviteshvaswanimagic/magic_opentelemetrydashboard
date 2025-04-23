@@ -1,0 +1,68 @@
+# Microk8s specific overrides for production environment
+
+# Global settings
+global:
+  environment: production
+  cluster: prod-cluster
+
+# Storage configuration for all components
+storage:
+  storageClass: microk8s-hostpath  # Microk8s default storage class
+
+# Service configuration for all components
+service:
+  type: NodePort  # Microk8s typically uses NodePort
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+
+# Node selector and tolerations for all components
+nodeSelector:
+  kubernetes.io/os: linux
+tolerations: []
+
+# Container registry configuration for all components
+image:
+  registry: localhost:32000  # Microk8s local registry
+  pullPolicy: IfNotPresent
+
+# Microk8s-specific resource labels
+labels:
+  microk8s.io/cluster: local
+  microk8s.io/managed-by: helm
+
+# Microk8s-specific environment variables
+env:
+  - name: MICROK8S_NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+  - name: MICROK8S_POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+
+# Override specific component settings if needed
+loki-stack:
+  loki:
+    persistence:
+      storageClassName: microk8s-hostpath
+  promtail:
+    image:
+      registry: localhost:32000
+
+prometheus:
+  server:
+    persistence:
+      storageClassName: microk8s-hostpath
+  alertmanager:
+    persistence:
+      storageClassName: microk8s-hostpath
+  pushgateway:
+    persistence:
+      storageClassName: microk8s-hostpath
+
+grafana:
+  persistence:
+    storageClassName: microk8s-hostpath 
