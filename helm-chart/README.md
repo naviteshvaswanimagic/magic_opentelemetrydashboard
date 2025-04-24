@@ -1,6 +1,25 @@
-# Monitoring Stack Installtion Helm Chart
+# Monitoring Stack Installation Helm Chart
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Helm](https://img.shields.io/badge/Helm-v3-blue)](https://helm.sh)
+[![MicroK8s](https://img.shields.io/badge/MicroK8s-Latest-orange)](https://microk8s.io)
 
-A complete monitoring solution that includes Loki, Prometheus, and Grafana, with additional custom components like loki-reader.
+> A comprehensive OpenTelemetry monitoring solution that includes Loki, Prometheus, and Grafana, with additional custom components like loki-reader.
+
+## 📑 Table of Contents
+- [Features](#-features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage Guide](#usage-guide)
+- [Troubleshooting](#troubleshooting)
+- [Magic xpi OpenTelemetry Configuration](#magic-xpi-opentelemetry-configuration)
+
+## ✨ Features
+- Complete OpenTelemetry monitoring solution
+- Easy deployment using Helm charts
+- Support for multiple Kubernetes platforms (MicroK8s, AKS, EKS)
+- Real-time metrics and monitoring
+- Scalable architecture
 
 ## Overview
 
@@ -35,6 +54,29 @@ chmod +x set-cloud-provider.sh
 ./set-cloud-provider.sh --provider eks
 ```
 
+### Quick Start for Different Platforms
+
+#### For AKS
+```bash
+# Install from ACR
+helm install monitoring-stack oci://xpiacr1.azurecr.io/helm/monitoring-stack --version 0.1.4 -n monitoring --create-namespace --values values-production.yaml --values values-production-aks.yaml
+```
+
+#### For Windows Development
+```bash
+# Install from local chart
+helm install monitoring-stack . -n monitoring --create-namespace --values values-production.yaml
+```
+
+#### For MicroK8s
+```bash
+# 1. Enable required addons
+microk8s enable dns storage metallb
+
+# 2. Install the chart
+helm install monitoring-stack . -n monitoring --create-namespace --values values-production.yaml
+```
+
 ### Manual Installation
 
 1. Edit `values.yaml` to set your desired configuration
@@ -58,6 +100,33 @@ You can customize the installation by providing additional parameters:
 
 # Install with custom release name and namespace
 ./set-cloud-provider.sh --provider microk8s --release my-monitoring --namespace observability
+```
+
+## Installation from OCI Registry
+
+### Azure Container Registry (ACR)
+```bash
+# Login to Azure
+az login
+
+# Login to ACR
+helm registry login <ACR_NAME>.azurecr.io --username <ACR_USERNAME> --password <ACR_PASSWORD>
+
+# Install from ACR
+helm install monitoring-stack oci://<ACR_NAME>.azurecr.io/helm/monitoring-stack --version <CHART_VERSION> \
+  -n monitoring --create-namespace \
+  --values values-production.yaml \
+  --values values-production-aks.yaml
+```
+
+### GitHub Container Registry (GHCR)
+```bash
+# Login to GHCR
+helm registry login ghcr.io --username <GITHUB_USERNAME> --password <GITHUB_TOKEN>
+
+# Install from GHCR
+helm install monitoring-stack oci://ghcr.io/<GITHUB_USERNAME>/monitoring-stack --version <CHART_VERSION> \
+  -n monitoring --create-namespace
 ```
 
 ## RBAC Configuration
@@ -207,6 +276,54 @@ The deployment follows Kubernetes security best practices:
 - Dropped capabilities
 - Resource limits
 
+## Magic xpi OpenTelemetry Configuration
+
+To configure Magic xpi for OpenTelemetry:
+
+1. Log in to Magic Monitor with admin credentials
+2. Navigate to Settings -> Admin Settings
+3. Under "OpenTelemetry Settings" section:
+   - Select "gRPC" as the exporter type
+   - Configure the collector endpoint URL (default: `http://<otel-collector-External-IP>:4317`)
+     Note: You will receive the External IP address after the Helm chart installation completes
+4. Save your configuration
+5. Verify data collection:
+   - Open Grafana portal (default: `http://<Grafana-External-IP>:3000`)
+   - Navigate to the "OpenTelemetry Monitor Prom Live" dashboard
+   - Confirm that metrics are being received
+
+### Viewing and Analyzing Logs
+You can view activity logs through the Grafana portal:
+1. Navigate to the Grafana UI
+2. Click on "Explore" in the left sidebar
+3. Select "Loki" as your data source
+4. Use LogQL to query and filter your logs
+
+## Cleanup and Reinstallation
+
+To completely remove and reinstall the monitoring stack:
+
+```bash
+# Uninstall the Helm release
+helm uninstall monitoring-stack -n monitoring
+
+# Delete the namespace
+kubectl delete namespace monitoring
+
+# Clean up leftover resources if any
+kubectl delete serviceaccount -n monitoring monitoring-stack-grafana monitoring-stack-loki
+kubectl delete role -n monitoring monitoring-stack-grafana monitoring-stack-loki
+kubectl delete rolebinding -n monitoring monitoring-stack-grafana monitoring-stack-loki
+
+# Reinstall with custom configuration
+helm install monitoring-stack oci://<REGISTRY_URL>/monitoring-stack --version <CHART_VERSION> \
+  -n monitoring \
+  --create-namespace \
+  --set global.cloudProvider=aks \
+  --set global.storageClass.default=managed-premium \
+  --set grafana.service.type=LoadBalancer
+```
+
 ## Uninstallation
 
 To uninstall the monitoring stack:
@@ -286,3 +403,9 @@ helm install monitoring-stack . -n monitoring --create-namespace \
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+<div align="center">
+Made with ❤️ by the Magic Team
+</div>
