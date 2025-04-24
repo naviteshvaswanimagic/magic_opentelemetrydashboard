@@ -8,7 +8,6 @@ This Helm chart provides a comprehensive monitoring solution that can be deploye
 - MicroK8s
 - Azure Kubernetes Service (AKS)
 - Amazon Elastic Kubernetes Service (EKS)
-- Google Kubernetes Engine (GKE)
 
 ## Components
 
@@ -19,7 +18,7 @@ This Helm chart provides a comprehensive monitoring solution that can be deploye
 
 ## Prerequisites
 
-- Kubernetes cluster (MicroK8s, AKS, EKS, or GKE)
+- Kubernetes cluster (MicroK8s, AKS, or EKS)
 - Helm 3.x
 - kubectl configured to access your cluster
 
@@ -30,20 +29,10 @@ This Helm chart provides a comprehensive monitoring solution that can be deploye
 Use the provided script to automatically configure and install the monitoring stack based on your cloud provider:
 
 ```bash
-# Make the script executable
 chmod +x set-cloud-provider.sh
-
-# For MicroK8s
 ./set-cloud-provider.sh --provider microk8s
-
-# For AKS
 ./set-cloud-provider.sh --provider aks
-
-# For EKS
 ./set-cloud-provider.sh --provider eks
-
-# For GKE
-./set-cloud-provider.sh --provider gke
 ```
 
 ### Manual Installation
@@ -120,20 +109,6 @@ For EKS, you can integrate with AWS IAM Roles for Service Accounts (IRSA):
   --eks-loki-reader-role-arn "arn:aws:iam::123456789012:role/loki-reader-role"
 ```
 
-#### GKE Workload Identity
-
-For GKE, you can integrate with Google Cloud's Workload Identity:
-
-```bash
-./set-cloud-provider.sh --provider gke \
-  --gke-workload-identity \
-  --gke-project-id "your-gcp-project-id" \
-  --gke-grafana-sa-email "grafana@your-project.iam.gserviceaccount.com" \
-  --gke-prometheus-sa-email "prometheus@your-project.iam.gserviceaccount.com" \
-  --gke-loki-sa-email "loki@your-project.iam.gserviceaccount.com" \
-  --gke-loki-reader-sa-email "loki-reader@your-project.iam.gserviceaccount.com"
-```
-
 ## Accessing the Services
 
 ### MicroK8s
@@ -161,22 +136,6 @@ For EKS, services are configured with NLB LoadBalancers:
 
 - Access Grafana and Prometheus using the NLB endpoints
 - Or enable the ingress by setting `ingress.enabled=true` and configuring your ingress controller
-
-### GKE
-
-For GKE, services are configured with Internal Load Balancers by default:
-
-- Use port-forwarding to access services:
-  ```bash
-  kubectl port-forward svc/monitoring-stack-grafana 3000:3000 -n monitoring
-  kubectl port-forward svc/monitoring-stack-prometheus-server 9090:80 -n monitoring
-  ```
-
-- Or enable the ingress by setting `ingress.enabled=true` and configuring your ingress controller
-- For public access, you can change the service type to LoadBalancer and remove the internal annotation:
-  ```bash
-  ./set-cloud-provider.sh --provider gke --type LoadBalancer
-  ```
 
 ## Accessing Pod Logs
 
@@ -233,16 +192,12 @@ The monitoring stack uses the following storage classes by default:
 - MicroK8s: `microk8s-hostpath`
 - AKS: `managed-premium`
 - EKS: `gp2`
-- GKE: `standard`
-
-You can override these defaults using the `--storage` parameter in the setup script or by directly modifying `values.yaml`.
 
 ### Service Types
 
 - MicroK8s: `LoadBalancer` (using MetalLB)
 - AKS: `ClusterIP` (with option for internal LoadBalancer)
 - EKS: `ClusterIP` (with option for NLB)
-- GKE: `ClusterIP` (with option for internal LoadBalancer)
 
 ### Security Context
 
@@ -265,34 +220,29 @@ helm uninstall monitoring-stack -n monitoring
 If you encounter issues with the installation, check the following:
 
 1. Verify your storage class exists:
-   ```bash
-   kubectl get sc
-   ```
+```bash
+kubectl get sc
+```
 
 2. Check pod status:
-   ```bash
-   kubectl get pods -n monitoring
-   ```
+```bash
+kubectl get pods -n monitoring
+```
 
 3. Check persistent volume claims:
-   ```bash
-   kubectl get pvc -n monitoring
-   ```
+```bash
+kubectl get pvc -n monitoring
+```
 
 4. Check service accounts and RBAC resources:
-   ```bash
-   kubectl get serviceaccounts -n monitoring
-   kubectl get roles,rolebindings -n monitoring
-   kubectl get clusterroles,clusterrolebindings | grep monitoring-stack
-   ```
+```bash
+kubectl get serviceaccounts -n monitoring && kubectl get roles,rolebindings -n monitoring && kubectl get clusterroles,clusterrolebindings | grep monitoring-stack
+```
 
 5. View logs for specific components:
-   ```bash
-   kubectl logs -l app=loki -n monitoring
-   kubectl logs -l app=prometheus-server -n monitoring
-   kubectl logs -l app=grafana -n monitoring
-   kubectl logs -l app=loki-reader -n monitoring
-   ```
+```bash
+kubectl logs -l app=loki -n monitoring && kubectl logs -l app=prometheus-server -n monitoring && kubectl logs -l app=grafana -n monitoring && kubectl logs -l app=loki-reader -n monitoring
+```
 
 ## Sample Helm Commands
 
@@ -331,19 +281,6 @@ helm install monitoring-stack . -n monitoring --create-namespace \
   --set global.eks.serviceAccounts.prometheus.roleArn=arn:aws:iam::123456789012:role/prometheus-role \
   --set global.eks.serviceAccounts.loki.roleArn=arn:aws:iam::123456789012:role/loki-role \
   --set global.eks.serviceAccounts.lokiReader.roleArn=arn:aws:iam::123456789012:role/loki-reader-role
-```
-
-### For GKE with Workload Identity:
-```bash
-helm install monitoring-stack . -n monitoring --create-namespace \
-  --set global.cloudProvider=gke \
-  --set global.storageClass.default=standard \
-  --set global.gke.workloadIdentity.enabled=true \
-  --set global.gke.workloadIdentity.projectId=your-gcp-project-id \
-  --set global.gke.serviceAccounts.grafana.serviceAccountEmail=grafana@your-project.iam.gserviceaccount.com \
-  --set global.gke.serviceAccounts.prometheus.serviceAccountEmail=prometheus@your-project.iam.gserviceaccount.com \
-  --set global.gke.serviceAccounts.loki.serviceAccountEmail=loki@your-project.iam.gserviceaccount.com \
-  --set global.gke.serviceAccounts.lokiReader.serviceAccountEmail=loki-reader@your-project.iam.gserviceaccount.com
 ```
 
 ## License
