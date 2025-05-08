@@ -57,17 +57,6 @@ You have two options for using the loki-reader component:
 
 ## Installation
 
-### Quick Install with Automatic Cloud Provider Detection
-
-Use the provided script to automatically configure and install the monitoring stack based on your cloud provider:
-
-```bash
-chmod +x set-cloud-provider.sh
-./set-cloud-provider.sh --provider microk8s
-./set-cloud-provider.sh --provider aks
-./set-cloud-provider.sh --provider eks
-```
-
 ### Quick Start for Different Platforms
 
 #### For AKS
