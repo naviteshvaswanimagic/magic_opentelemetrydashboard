@@ -57,9 +57,25 @@ chmod +x set-cloud-provider.sh
 ### Quick Start for Different Platforms
 
 #### For AKS
+1. First, download the required values files from GitHub:
+
+   Download these files directly from GitHub by clicking on the links below:
+   - [values-production.yaml](https://github.com/naviteshvaswanimagic/magic_opentelemetrydashboard/blob/DEV/helm-chart/monitoring-stack/values-production.yaml)
+   - [values-production-aks.yaml](https://github.com/naviteshvaswanimagic/magic_opentelemetrydashboard/blob/DEV/helm-chart/monitoring-stack/values-production-aks.yaml)
+
+   Save these files to a local directory (e.g., create a `monitoring-values` folder):
+   ```bash
+   # Create a directory for the values files
+   mkdir -p monitoring-values
+   
+   # Move your downloaded files to this directory
+   # For example, if files were downloaded to your Downloads folder:
+   # mv ~/Downloads/values-production*.yaml monitoring-values/
+   ```
+
+2. Install from ACR:
 ```bash
-# Install from ACR
-helm install monitoring-stack oci://xpiacr1.azurecr.io/helm/monitoring-stack --version 0.1.4 -n monitoring --create-namespace --values values-production.yaml --values values-production-aks.yaml
+helm install monitoring-stack oci://<ACR_NAME>.azurecr.io/helm/monitoring-stack --version <CHART_VERSION> -n monitoring --create-namespace --values monitoring-values/values-production.yaml --values monitoring-values/values-production-aks.yaml
 ```
 
 #### For Windows Development
@@ -105,28 +121,69 @@ You can customize the installation by providing additional parameters:
 ## Installation from OCI Registry
 
 ### Azure Container Registry (ACR)
+
+1. First, download the required values files from GitHub:
+
+   Download these files directly from GitHub by clicking on the links below:
+   - [values-production.yaml](https://github.com/magicxpi/magic_opentelemetrydashboard/raw/main/helm-chart/values-production.yaml)
+   - [values-production-aks.yaml](https://github.com/magicxpi/magic_opentelemetrydashboard/raw/main/helm-chart/values-production-aks.yaml)
+
+   Save these files to a local directory (e.g., create a `monitoring-values` folder):
+   ```bash
+   # Create a directory for the values files
+   mkdir -p monitoring-values
+   
+   # Move your downloaded files to this directory
+   # For example, if files were downloaded to your Downloads folder:
+   # mv ~/Downloads/values-production*.yaml monitoring-values/
+   ```
+
+2. Login to Azure and ACR:
 ```bash
 # Login to Azure
 az login
 
 # Login to ACR
 helm registry login <ACR_NAME>.azurecr.io --username <ACR_USERNAME> --password <ACR_PASSWORD>
+```
 
-# Install from ACR
+3. Install from ACR:
+```bash
 helm install monitoring-stack oci://<ACR_NAME>.azurecr.io/helm/monitoring-stack --version <CHART_VERSION> \
   -n monitoring --create-namespace \
-  --values values-production.yaml \
-  --values values-production-aks.yaml
+  --values monitoring-values/values-production.yaml \
+  --values monitoring-values/values-production-aks.yaml
 ```
 
 ### GitHub Container Registry (GHCR)
+
+1. First, download the required values files from GitHub:
+
+   Download these files directly from GitHub by clicking on the links below:
+   - [values-production.yaml](https://github.com/magicxpi/magic_opentelemetrydashboard/raw/main/helm-chart/values-production.yaml)
+   - [values-production-aks.yaml](https://github.com/magicxpi/magic_opentelemetrydashboard/raw/main/helm-chart/values-production-aks.yaml)
+
+   Save these files to a local directory (e.g., create a `monitoring-values` folder):
+   ```bash
+   # Create a directory for the values files
+   mkdir -p monitoring-values
+   
+   # Move your downloaded files to this directory
+   # For example, if files were downloaded to your Downloads folder:
+   # mv ~/Downloads/values-production*.yaml monitoring-values/
+   ```
+
+2. Login to GHCR:
 ```bash
 # Login to GHCR
 helm registry login ghcr.io --username <GITHUB_USERNAME> --password <GITHUB_TOKEN>
+```
 
-# Install from GHCR
+3. Install from GHCR:
+```bash
 helm install monitoring-stack oci://ghcr.io/<GITHUB_USERNAME>/monitoring-stack --version <CHART_VERSION> \
-  -n monitoring --create-namespace
+  -n monitoring --create-namespace \
+  --values monitoring-values/values-production.yaml
 ```
 
 ## RBAC Configuration
