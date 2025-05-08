@@ -43,7 +43,7 @@ You have two options for using the loki-reader component:
    - Use the `loki-reader` folder to build the Docker image from scratch
    - This option is recommended if you need to customize the loki-reader implementation
    - Follow the build instructions in the `loki-reader` folder
-   - Please refer [View readme](loki-reader\README.md)
+   - Please refer [View readme](loki-reader/README.md)
 
 2. **Use Pre-built Image**
    - Use the pre-built loki-reader image included in the Helm chart
