@@ -74,6 +74,7 @@ You have two options for using the loki-reader component:
    # Move your downloaded files to this directory
    # For example, if files were downloaded to your Downloads folder:
    # mv ~/Downloads/values-production*.yaml monitoring-values/
+   # These files will be used in cluster-specific deployments whereas values-production.yaml is used in every production cluster
    ```
 
 2. Install from ACR:
