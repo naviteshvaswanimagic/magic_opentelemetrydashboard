@@ -1,321 +1,481 @@
-# Otel-Loki-Reader
+# Monitoring Stack Installation Helm Chart
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Helm](https://img.shields.io/badge/Helm-v3-blue)](https://helm.sh)
+[![MicroK8s](https://img.shields.io/badge/MicroK8s-Latest-orange)](https://microk8s.io)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+> A comprehensive OpenTelemetry monitoring solution that includes Loki, Prometheus, and Grafana, with additional custom components like loki-reader.
 
-## 1. Overview
+## 📑 Table of Contents
+- [Features](#-features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage Guide](#usage-guide)
+- [Troubleshooting](#troubleshooting)
+- [Magic xpi OpenTelemetry Configuration](#magic-xpi-opentelemetry-configuration)
 
-Otel-Loki-Reader is a specialized tool for reading and processing logs from Loki and converting them into Prometheus metrics through OpenTelemetry (OTel). It connects to a Loki log server, extracts specific metrics from structured logs, and exports them to Prometheus. This enables better monitoring and visualization of log data as time-series metrics, facilitating integration with Grafana dashboards and alerting systems.
+## ✨ Features
+- Complete OpenTelemetry monitoring solution
+- Easy deployment using Helm charts
+- Support for multiple Kubernetes platforms (MicroK8s, AKS, EKS)
+- Real-time metrics and monitoring
+- Scalable architecture
 
-The tool is particularly useful for monitoring server and application health by extracting information like:
-- Server start/stop events
-- Error rates
-- Flow execution rates
-- Session uptimes
-- Server status (Running, Stopped, Error, Unresponsive)
+## Overview
 
-## 2. Pre-requisites
+This Helm chart provides a comprehensive monitoring solution that can be deployed on various Kubernetes platforms:
+- MicroK8s
+- Azure Kubernetes Service (AKS)
+- Amazon Elastic Kubernetes Service (EKS)
 
-Before installing Otel-Loki-Reader, ensure you have the following components:
+## Components
 
-- Python 3.11+
-- Loki server (for log storage)
-- Prometheus server with Push Gateway (for metrics storage)
-- Docker/Podman (for containerized deployment)
-- Kubernetes/MicroK8s (for orchestrated deployment - optional)
+- **Loki**: Log aggregation system
+- **Prometheus**: Metrics collection and alerting
+- **Grafana**: Visualization and dashboarding
+- **Loki Reader**: Custom component for reading and processing logs from Loki
 
-## 3. Installation
+## Loki Reader Image Options
 
-### Local Installation
+You have two options for using the loki-reader component:
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/naviteshvaswanimagic/magic_opentelemetrydashboard.git
-   cd magic_opentelemetrydashboard
-   ```
+1. **Build from Source**
+   - Use the `loki-reader` folder to build the Docker image from scratch
+   - This option is recommended if you need to customize the loki-reader implementation
+   - Follow the build instructions in the `loki-reader` folder
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. **Use Pre-built Image**
+   - Use the pre-built loki-reader image included in the Helm chart
+   - This option is recommended for most users who want a quick deployment
+   - The pre-built image is optimized for performance and security
 
-3. Configure the application (copy `.env.example` to `.env` and modify as needed)
+## Prerequisites
 
-4. Run the application:
-   ```bash
-   python loki_reader.py
-   ```
+- Kubernetes cluster (MicroK8s, AKS, or EKS)
+- Helm 3.x
+- kubectl configured to access your cluster
 
-### Docker Installation
+## Installation
 
-1. Build the Docker image:
-   ```bash
-   docker build -t loki-reader:latest .
-   ```
+### Quick Install with Automatic Cloud Provider Detection
 
-2. Run the container:
-   ```bash
-   docker run -d --name loki-reader --env-file .env loki-reader:latest
-   ```
-
-### Podman Installation (Windows)
-
-1. Build using provided script:
-   ```bash
-   build.bat
-   ```
-
-2. The image will be exported to `./exported-images/`
-
-### Kubernetes Deployment
-
-1. Build and export the image:
-   - Windows: Use `build.bat`
-   - Linux: Use `build.sh`
-
-2. Deploy to Kubernetes:
-   - Windows: Use `deploy-k8s.bat`
-   - Linux: Use `deploy-k8s.sh`
-
-## 4. Uninstallation
-
-### Local Uninstallation
-
-1. Stop the application if running:
-   ```bash
-   pkill -f loki_reader.py
-   ```
-
-2. Remove the virtual environment and dependencies (if applicable):
-   ```bash
-   rm -rf venv
-   pip uninstall -r requirements.txt -y
-   ```
-
-### Docker Uninstallation
-
-1. Stop and remove the container:
-   ```bash
-   docker stop loki-reader
-   docker rm loki-reader
-   ```
-
-2. Remove the Docker image:
-   ```bash
-   docker rmi loki-reader:latest
-   ```
-
-### Kubernetes Uninstallation
-
-1. Remove the deployment:
-   ```bash
-   kubectl delete -f kubernetes/
-   ```
-
-2. Clean up persistent volumes if used:
-   ```bash
-   kubectl delete pvc -l app=loki-reader
-   ```
-
-## 5. Features and else
-
-### 5.1 Features
-
-- **Loki Log Collection**: Connects to Loki to query and extract log entries
-- **Metrics Generation**: Converts log data into time-series metrics
-- **Supported Formats**: [View supported logs formats](Supported%20Logs%20format.txt)
-- **Prometheus Integration**: Pushes metrics to Prometheus via push gateway
-- **Server Status Monitoring**: Tracks server status and detects unresponsive systems
-- **Project-level Aggregation**: Consolidates metrics from multiple servers into project-level summaries
-- **Containerized Deployment**: Ready for Docker and Kubernetes deployment
-- **Configurable**: All parameters can be adjusted via environment variables
-
-### 5.2 Configuration
-
-All configuration is done via environment variables, which can be set in the `.env` file:
-
-| Variable | Description | Default Value |
-|----------|-------------|---------------|
-| Loki_SERVER_HOST | Loki server hostname | loki |
-| Loki_SERVER_PORT | Loki server port | 3100 |
-| MAX_WORKERS | Number of worker threads | 10 |
-| PROMETHEUS_GATEWAY | Prometheus push gateway URL | http://prometheus-prometheus-pushgateway:9091 |
-| PROMETHEUS_JOB_NAME | Job name for Prometheus metrics | summary_metrics |
-| LOG_LEVEL | Logging level | INFO |
-| LOG_DIR | Log directory | logs |
-| LOG_MAX_BYTES | Maximum log file size | 10485760 |
-| LOG_BACKUP_COUNT | Number of backup log files | 5 |
-| ENABLE_CONSOLE_LOG | Enable console logging | true |
-| ERROR_TIMEOUT_HOURS | Error status timeout in hours | 1 |
-| UNRESPONSIVE_TIMEOUT_MINUTES | Unresponsive status timeout in minutes | 5 |
-| RESET_TIMEOUT_HOURS | Reset timeout in hours | 3 |
-
-### 5.3 Metrics
-
-The following metrics are generated:
-
-| Metric | Description | Labels |
-|--------|-------------|--------|
-| project_name | Name of the project | serverid, projectkey |
-| current_session_start | Session start timestamp | serverid, projectkey |
-| latest_transaction_time | Latest transaction timestamp | serverid, projectkey |
-| uptime_current_session_ns | Session uptime in nanoseconds | serverid, projectkey |
-| uptime_current_session_sec | Session uptime in seconds | serverid, projectkey |
-| total_errors_current_session | Total errors in current session | serverid, projectkey |
-| errors_last_hour | Error count in last hour | serverid, projectkey |
-| total_flows_current_session | Total flow count in session | serverid, projectkey |
-| flows_last_hour | Flow count in last hour | serverid, projectkey |
-| server_status | Current server status | serverid, projectkey, status |
-| project_status | Current project status | projectkey, status |
-| server_count | Count of servers | projectkey |
-
-### 5.4 Usage
-
-The application runs continuously, querying Loki for new logs at regular intervals and pushing metrics to Prometheus.
-
-#### Command line
+Use the provided script to automatically configure and install the monitoring stack based on your cloud provider:
 
 ```bash
-python loki_reader.py
+chmod +x set-cloud-provider.sh
+./set-cloud-provider.sh --provider microk8s
+./set-cloud-provider.sh --provider aks
+./set-cloud-provider.sh --provider eks
 ```
 
-#### Docker
+### Quick Start for Different Platforms
+
+#### For AKS
+1. First, download the required values files from GitHub:
+
+   Download these files directly from GitHub by clicking on the links below:
+   - [values-production.yaml](https://github.com/naviteshvaswanimagic/magic_opentelemetrydashboard/blob/DEV/helm-chart/monitoring-stack/values-production.yaml)
+   - [values-production-aks.yaml](https://github.com/naviteshvaswanimagic/magic_opentelemetrydashboard/blob/DEV/helm-chart/monitoring-stack/values-production-aks.yaml)
+
+   Save these files to a local directory (e.g., create a `monitoring-values` folder):
+   ```bash
+   # Create a directory for the values files
+   mkdir -p monitoring-values
+   
+   # Move your downloaded files to this directory
+   # For example, if files were downloaded to your Downloads folder:
+   # mv ~/Downloads/values-production*.yaml monitoring-values/
+   ```
+
+2. Install from ACR:
+```bash
+helm install monitoring-stack oci://<ACR_NAME>.azurecr.io/helm/monitoring-stack --version <CHART_VERSION> -n monitoring --create-namespace --values monitoring-values/values-production.yaml --values monitoring-values/values-production-aks.yaml
+```
+
+#### For Windows Development
+```bash
+# Install from local chart
+helm install monitoring-stack . -n monitoring --create-namespace --values values-production.yaml
+```
+
+#### For MicroK8s
+```bash
+# 1. Enable required addons
+microk8s enable dns storage metallb
+
+# 2. Install the chart
+helm install monitoring-stack . -n monitoring --create-namespace --values values-production.yaml
+```
+
+### Manual Installation
+
+1. Edit `values.yaml` to set your desired configuration
+
+2. Install the Helm chart:
 
 ```bash
-docker run -d --name loki-reader --env-file .env loki-reader:latest
+helm install monitoring-stack . -n monitoring --create-namespace
 ```
 
-#### Kubernetes
+### Custom Configuration
 
-Once deployed with the `deploy-k8s.sh` or `deploy-k8s.bat` script, the application runs as a deployment in the specified namespace.
+You can customize the installation by providing additional parameters:
 
-### 5.5 Architecture
+```bash
+# Install with custom storage class
+./set-cloud-provider.sh --provider eks --storage gp3
 
-The application consists of several key components:
+# Install with custom service type
+./set-cloud-provider.sh --provider aks --type LoadBalancer
 
-1. **Config**: Manages configuration and sets up logging
-2. **MetricsState**: Maintains the current state of metrics and server sessions
-3. **LokiLogReader**: Queries Loki for logs and processes the results
-4. **Prometheus Integration**: Pushes metrics to the Prometheus push gateway
+# Install with custom release name and namespace
+./set-cloud-provider.sh --provider microk8s --release my-monitoring --namespace observability
+```
 
-### 5.6 Security
+## Installation from OCI Registry
 
-- The application uses environment variables for configuration
-- No authentication credentials are hardcoded
-- Network communication should be secured using HTTPS where applicable
+### Azure Container Registry (ACR)
 
-### 5.7 Testing
+1. First, download the required values files from GitHub:
 
-Manual testing can be performed by:
+   Download these files directly from GitHub by clicking on the links below:
+   - [values-production.yaml](https://github.com/magicxpi/magic_opentelemetrydashboard/raw/main/helm-chart/values-production.yaml)
+   - [values-production-aks.yaml](https://github.com/magicxpi/magic_opentelemetrydashboard/raw/main/helm-chart/values-production-aks.yaml)
 
-1. Setting up a Loki server with sample logs
-2. Setting up a Prometheus server with push gateway
-3. Running the application with appropriate configuration
-4. Verifying metrics in Prometheus
-
-### 5.8 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### 5.9 Helm Chart - Otel Loki Reader Monitoring Stack
-
-This Helm chart deploys a complete OpenTelemetry-based monitoring stack integrated with Loki and Prometheus. It includes components like Grafana, Loki, Promtail, Pushgateway, Prometheus, and a custom Loki Reader application that transforms logs into Prometheus metrics.
-
-#### Prerequisites
-1. Kubernetes Cluster (MicroK8s, Minikube, etc.)
-2. Helm v3 or higher
-3. MetalLB (for LoadBalancer support if using MicroK8s)
-
-#### Components
-1. Grafana: Dashboards UI
-2. Prometheus: Metrics collection
-3. Alertmanager: Alerting system
-4. Loki: Log storage backend
-5. Promtail: Log shipping agent
-6. Pushgateway: Push metrics endpoint
-7. Otel-Collector: Ingest metrics, logs, and traces
-8. Loki Reader: Converts logs to Prometheus metrics
-
-#### Helm Installation
-1. Clone the repository:
+   Save these files to a local directory (e.g., create a `monitoring-values` folder):
    ```bash
-   git clone https://github.com/naviteshvaswanimagic/magic_opentelemetrydashboard.git
-   cd Otel-Loki-Reader/helm_chart/monitoring-stack
-   ```
-2. Deploy the chart using:
-   ```bash
-   ./deploy-monitoring.sh
-   ```
-Or with plain Helm:
-   ```bash
-   helm install monitoring-stack . -n monitoring --create-namespace
+   # Create a directory for the values files
+   mkdir -p monitoring-values
+   
+   # Move your downloaded files to this directory
+   # For example, if files were downloaded to your Downloads folder:
+   # mv ~/Downloads/values-production*.yaml monitoring-values/
    ```
 
-#### Post-Installation
-1. To verify that everything is running:
+2. Login to Azure and ACR:
+```bash
+# Login to Azure
+az login
+
+# Login to ACR
+helm registry login <ACR_NAME>.azurecr.io --username <ACR_USERNAME> --password <ACR_PASSWORD>
+```
+
+3. Install from ACR:
+```bash
+helm install monitoring-stack oci://<ACR_NAME>.azurecr.io/helm/monitoring-stack --version <CHART_VERSION> \
+  -n monitoring --create-namespace \
+  --values monitoring-values/values-production.yaml \
+  --values monitoring-values/values-production-aks.yaml
+```
+
+### GitHub Container Registry (GHCR)
+
+1. First, download the required values files from GitHub:
+
+   Download these files directly from GitHub by clicking on the links below:
+   - [values-production.yaml](https://github.com/magicxpi/magic_opentelemetrydashboard/raw/main/helm-chart/values-production.yaml)
+   - [values-production-aks.yaml](https://github.com/magicxpi/magic_opentelemetrydashboard/raw/main/helm-chart/values-production-aks.yaml)
+
+   Save these files to a local directory (e.g., create a `monitoring-values` folder):
    ```bash
-   kubectl get pods -n monitoring
-   kubectl get svc -n monitoring
+   # Create a directory for the values files
+   mkdir -p monitoring-values
+   
+   # Move your downloaded files to this directory
+   # For example, if files were downloaded to your Downloads folder:
+   # mv ~/Downloads/values-production*.yaml monitoring-values/
    ```
 
-#### External Access
-1. Use the following commands to retrieve the service IPs:
-   - Grafana (Dashboards UI):
-     ```bash
-     kubectl get svc -n monitoring -l app.kubernetes.io/name=grafana
-     ```
-   - Loki Reader (Log aggregation):
-     ```bash
-     kubectl get svc -n monitoring -l app=loki-reader
-     ```
-   - Prometheus Pushgateway:
-     ```bash
-     kubectl get svc -n monitoring -l app=prometheus-pushgateway
-     ```
-   - OpenTelemetry Collector:
-     ```bash
-     kubectl get svc -n monitoring -l app.kubernetes.io/name=otel-collector
-     ```
+2. Login to GHCR:
+```bash
+# Login to GHCR
+helm registry login ghcr.io --username <GITHUB_USERNAME> --password <GITHUB_TOKEN>
+```
 
-#### Grafana Login
-1. Username: admin
-2. Password: admin123
+3. Install from GHCR:
+```bash
+helm install monitoring-stack oci://ghcr.io/<GITHUB_USERNAME>/monitoring-stack --version <CHART_VERSION> \
+  -n monitoring --create-namespace \
+  --values monitoring-values/values-production.yaml
+```
 
-#### Customization
-1. You can customize the deployment by editing the values.yaml file or setting values inline:
-   ```bash
-   helm install monitoring-stack . -n monitoring -f values.yaml
-   ```
+## RBAC Configuration
 
-#### Upgrade
-1. To upgrade the stack after making changes:
-   ```bash
-   helm upgrade monitoring-stack . -n monitoring
-   ```
+The monitoring stack includes comprehensive RBAC configurations for all components:
 
-#### Uninstall
-1. To remove all components:
-   ```bash
-   ./undeploy-monitoring.sh
-   ```
+### Service Accounts
 
-   Or use Helm directly:
-   ```bash
-   helm uninstall monitoring-stack -n monitoring
-   ```
+Each component gets its own service account:
+- `monitoring-stack-grafana`
+- `monitoring-stack-prometheus`
+- `monitoring-stack-loki`
+- `loki-reader`
 
-### 5.10 License
+### Roles and Permissions
+
+- **Prometheus**: Cluster-wide permissions to collect metrics (via ClusterRole/ClusterRoleBinding)
+- **Grafana**: Namespace-scoped permissions to manage dashboards and datasources
+- **Loki**: Namespace-scoped permissions to manage logs
+- **Loki Reader**: Namespace-scoped permissions to interact with Loki and Prometheus
+
+### Cloud Provider IAM Integration
+
+#### AKS Workload Identity
+
+For AKS, you can integrate with Azure AD Workload Identity:
+
+```bash
+./set-cloud-provider.sh --provider aks \
+  --aks-workload-identity \
+  --aks-tenant-id "your-tenant-id" \
+  --aks-grafana-client-id "grafana-client-id" \
+  --aks-prometheus-client-id "prometheus-client-id" \
+  --aks-loki-client-id "loki-client-id" \
+  --aks-loki-reader-client-id "loki-reader-client-id"
+```
+
+#### EKS IRSA (IAM Roles for Service Accounts)
+
+For EKS, you can integrate with AWS IAM Roles for Service Accounts (IRSA):
+
+```bash
+./set-cloud-provider.sh --provider eks \
+  --eks-irsa \
+  --eks-region "us-east-1" \
+  --eks-grafana-role-arn "arn:aws:iam::123456789012:role/grafana-role" \
+  --eks-prometheus-role-arn "arn:aws:iam::123456789012:role/prometheus-role" \
+  --eks-loki-role-arn "arn:aws:iam::123456789012:role/loki-role" \
+  --eks-loki-reader-role-arn "arn:aws:iam::123456789012:role/loki-reader-role"
+```
+
+## Accessing the Services
+
+### MicroK8s
+
+With MicroK8s, services are exposed using MetalLB LoadBalancer:
+
+- Grafana: http://<METALLB_IP>:3000 (default credentials: admin/admin123)
+- Prometheus: http://<METALLB_IP>:80
+
+### AKS
+
+For AKS, services are configured as internal LoadBalancers by default:
+
+- Use port-forwarding to access services:
+  ```bash
+  kubectl port-forward svc/monitoring-stack-grafana 3000:3000 -n monitoring
+  kubectl port-forward svc/monitoring-stack-prometheus-server 9090:80 -n monitoring
+  ```
+
+- Or enable the ingress by setting `ingress.enabled=true` and configuring your ingress controller
+
+### EKS
+
+For EKS, services are configured with NLB LoadBalancers:
+
+- Access Grafana and Prometheus using the NLB endpoints
+- Or enable the ingress by setting `ingress.enabled=true` and configuring your ingress controller
+
+## Accessing Pod Logs
+
+You can view logs of any pod using these commands:
+
+### View Logs of a Specific Pod
+```bash
+# Basic logs
+kubectl logs -n monitoring <pod-name>
+
+# Follow logs in real-time
+kubectl logs -n monitoring <pod-name> -f
+
+# Show last 100 lines
+kubectl logs -n monitoring <pod-name> --tail=100
+
+# Show logs for the last hour
+kubectl logs -n monitoring <pod-name> --since=1h
+```
+
+### View Logs by Label
+```bash
+# View Grafana logs
+kubectl logs -n monitoring -l app.kubernetes.io/name=grafana
+
+# View Prometheus logs
+kubectl logs -n monitoring -l app.kubernetes.io/name=prometheus
+
+# View Loki logs
+kubectl logs -n monitoring -l app.kubernetes.io/name=loki
+
+# View Loki Reader logs
+kubectl logs -n monitoring -l app.kubernetes.io/name=loki-reader
+```
+
+### View Logs from Previous Container Instance
+```bash
+# If a pod crashed and was restarted
+kubectl logs -n monitoring <pod-name> --previous
+```
+
+### View Logs from Multi-Container Pods
+```bash
+# Specify the container name
+kubectl logs -n monitoring <pod-name> -c <container-name>
+```
+
+## Configuration
+
+### Storage Classes
+
+The monitoring stack uses the following storage classes by default:
+
+- MicroK8s: `microk8s-hostpath`
+- AKS: `managed-premium`
+- EKS: `gp2`
+
+### Service Types
+
+- MicroK8s: `LoadBalancer` (using MetalLB)
+- AKS: `ClusterIP` (with option for internal LoadBalancer)
+- EKS: `ClusterIP` (with option for NLB)
+
+### Security Context
+
+The deployment follows Kubernetes security best practices:
+- Non-root users
+- Read-only filesystems where possible
+- Dropped capabilities
+- Resource limits
+
+## Magic xpi OpenTelemetry Configuration
+
+To configure Magic xpi for OpenTelemetry:
+
+1. Log in to Magic Monitor with admin credentials
+2. Navigate to Settings -> Admin Settings
+3. Under "OpenTelemetry Settings" section:
+   - Select "gRPC" as the exporter type
+   - Configure the collector endpoint URL (default: `http://<otel-collector-External-IP>:4317`)
+     Note: You will receive the External IP address after the Helm chart installation completes
+4. Save your configuration
+5. Verify data collection:
+   - Open Grafana portal (default: `http://<Grafana-External-IP>:3000`)
+   - Navigate to the "OpenTelemetry Monitor Prom Live" dashboard
+   - Confirm that metrics are being received
+
+### Viewing and Analyzing Logs
+You can view activity logs through the Grafana portal:
+1. Navigate to the Grafana UI
+2. Click on "Explore" in the left sidebar
+3. Select "Loki" as your data source
+4. Use LogQL to query and filter your logs
+
+## Cleanup and Reinstallation
+
+To completely remove and reinstall the monitoring stack:
+
+```bash
+# Uninstall the Helm release
+helm uninstall monitoring-stack -n monitoring
+
+# Delete the namespace
+kubectl delete namespace monitoring
+
+# Clean up leftover resources if any
+kubectl delete serviceaccount -n monitoring monitoring-stack-grafana monitoring-stack-loki
+kubectl delete role -n monitoring monitoring-stack-grafana monitoring-stack-loki
+kubectl delete rolebinding -n monitoring monitoring-stack-grafana monitoring-stack-loki
+
+# Reinstall with custom configuration
+helm install monitoring-stack oci://<REGISTRY_URL>/monitoring-stack --version <CHART_VERSION> \
+  -n monitoring \
+  --create-namespace \
+  --set global.cloudProvider=aks \
+  --set global.storageClass.default=managed-premium \
+  --set grafana.service.type=LoadBalancer
+```
+
+## Uninstallation
+
+To uninstall the monitoring stack:
+
+```bash
+helm uninstall monitoring-stack -n monitoring
+```
+
+## Troubleshooting
+
+If you encounter issues with the installation, check the following:
+
+1. Verify your storage class exists:
+```bash
+kubectl get sc
+```
+
+2. Check pod status:
+```bash
+kubectl get pods -n monitoring
+```
+
+3. Check persistent volume claims:
+```bash
+kubectl get pvc -n monitoring
+```
+
+4. Check service accounts and RBAC resources:
+```bash
+kubectl get serviceaccounts -n monitoring && kubectl get roles,rolebindings -n monitoring && kubectl get clusterroles,clusterrolebindings | grep monitoring-stack
+```
+
+5. View logs for specific components:
+```bash
+kubectl logs -l app=loki -n monitoring && kubectl logs -l app=prometheus-server -n monitoring && kubectl logs -l app=grafana -n monitoring && kubectl logs -l app=loki-reader -n monitoring
+```
+
+## Sample Helm Commands
+
+### For MicroK8s:
+```bash
+helm install monitoring-stack . -n monitoring --create-namespace \
+  --set global.cloudProvider=microk8s \
+  --set global.storageClass.default=microk8s-hostpath \
+  --set prometheus.service.type=LoadBalancer \
+  --set grafana.service.type=LoadBalancer \
+  --set grafana.service.annotations."metallb\.universe\.tf/allow-shared-ip"=monitoring-stack \
+  --set prometheus.service.annotations."metallb\.universe\.tf/allow-shared-ip"=monitoring-stack
+```
+
+### For AKS with Workload Identity:
+```bash
+helm install monitoring-stack . -n monitoring --create-namespace \
+  --set global.cloudProvider=aks \
+  --set global.storageClass.default=managed-premium \
+  --set global.aks.workloadIdentity.enabled=true \
+  --set global.aks.workloadIdentity.tenantId=<your-tenant-id> \
+  --set global.aks.serviceAccounts.grafana.clientId=<grafana-client-id> \
+  --set global.aks.serviceAccounts.prometheus.clientId=<prometheus-client-id> \
+  --set global.aks.serviceAccounts.loki.clientId=<loki-client-id> \
+  --set global.aks.serviceAccounts.lokiReader.clientId=<loki-reader-client-id>
+```
+
+### For EKS with IRSA:
+```bash
+helm install monitoring-stack . -n monitoring --create-namespace \
+  --set global.cloudProvider=eks \
+  --set global.storageClass.default=gp2 \
+  --set global.eks.irsa.enabled=true \
+  --set global.eks.irsa.region=us-east-1 \
+  --set global.eks.serviceAccounts.grafana.roleArn=arn:aws:iam::123456789012:role/grafana-role \
+  --set global.eks.serviceAccounts.prometheus.roleArn=arn:aws:iam::123456789012:role/prometheus-role \
+  --set global.eks.serviceAccounts.loki.roleArn=arn:aws:iam::123456789012:role/loki-role \
+  --set global.eks.serviceAccounts.lokiReader.roleArn=arn:aws:iam::123456789012:role/loki-reader-role
+```
+
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-### 5.11 Contact
-
-For questions or support, please open an issue on the GitHub repository. 
+---
 
 <div align="center">
 Made with ❤️ by the Magic Team
