@@ -2,11 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-A specialized tool for reading and processing logs from Loki and converting them into Prometheus metrics through OpenTelemetry (OTel).
+## 1. Overview
 
-## 📋 Overview
-
-Otel-Loki-Reader connects to a Loki log server, extracts specific metrics from structured logs, and exports them to Prometheus. This enables better monitoring and visualization of log data as time-series metrics, facilitating integration with Grafana dashboards and alerting systems.
+Otel-Loki-Reader is a specialized tool for reading and processing logs from Loki and converting them into Prometheus metrics through OpenTelemetry (OTel). It connects to a Loki log server, extracts specific metrics from structured logs, and exports them to Prometheus. This enables better monitoring and visualization of log data as time-series metrics, facilitating integration with Grafana dashboards and alerting systems.
 
 The tool is particularly useful for monitoring server and application health by extracting information like:
 - Server start/stop events
@@ -15,18 +13,9 @@ The tool is particularly useful for monitoring server and application health by 
 - Session uptimes
 - Server status (Running, Stopped, Error, Unresponsive)
 
-## ✨ Features
+## 2. Pre-requisites
 
-- **Loki Log Collection**: Connects to Loki to query and extract log entries
-- **Metrics Generation**: Converts log data into time-series metrics
-- **Supported Formats**: [View supported logs formats](SUPPORTED_LOGS_FORMAT.md)
-- **Prometheus Integration**: Pushes metrics to Prometheus via push gateway
-- **Server Status Monitoring**: Tracks server status and detects unresponsive systems
-- **Project-level Aggregation**: Consolidates metrics from multiple servers into project-level summaries
-- **Containerized Deployment**: Ready for Docker and Kubernetes deployment
-- **Configurable**: All parameters can be adjusted via environment variables
-
-## 🔧 Requirements
+Before installing Otel-Loki-Reader, ensure you have the following components:
 
 - Python 3.11+
 - Loki server (for log storage)
@@ -34,14 +23,14 @@ The tool is particularly useful for monitoring server and application health by 
 - Docker/Podman (for containerized deployment)
 - Kubernetes/MicroK8s (for orchestrated deployment - optional)
 
-## 📦 Installation
+## 3. Installation
 
 ### Local Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/indking/Otel-Loki-Reader.git
-   cd Otel-Loki-Reader
+   git clone https://github.com/naviteshvaswanimagic/magic_opentelemetrydashboard.git
+   cd magic_opentelemetrydashboard
    ```
 
 2. Install dependencies:
@@ -87,7 +76,60 @@ The tool is particularly useful for monitoring server and application health by 
    - Windows: Use `deploy-k8s.bat`
    - Linux: Use `deploy-k8s.sh`
 
-## ⚙️ Configuration
+## 4. Uninstallation
+
+### Local Uninstallation
+
+1. Stop the application if running:
+   ```bash
+   pkill -f loki_reader.py
+   ```
+
+2. Remove the virtual environment and dependencies (if applicable):
+   ```bash
+   rm -rf venv
+   pip uninstall -r requirements.txt -y
+   ```
+
+### Docker Uninstallation
+
+1. Stop and remove the container:
+   ```bash
+   docker stop loki-reader
+   docker rm loki-reader
+   ```
+
+2. Remove the Docker image:
+   ```bash
+   docker rmi loki-reader:latest
+   ```
+
+### Kubernetes Uninstallation
+
+1. Remove the deployment:
+   ```bash
+   kubectl delete -f kubernetes/
+   ```
+
+2. Clean up persistent volumes if used:
+   ```bash
+   kubectl delete pvc -l app=loki-reader
+   ```
+
+## 5. Features and else
+
+### 5.1 Features
+
+- **Loki Log Collection**: Connects to Loki to query and extract log entries
+- **Metrics Generation**: Converts log data into time-series metrics
+- **Supported Formats**: [View supported logs formats](Supported%20Logs%20format.txt)
+- **Prometheus Integration**: Pushes metrics to Prometheus via push gateway
+- **Server Status Monitoring**: Tracks server status and detects unresponsive systems
+- **Project-level Aggregation**: Consolidates metrics from multiple servers into project-level summaries
+- **Containerized Deployment**: Ready for Docker and Kubernetes deployment
+- **Configurable**: All parameters can be adjusted via environment variables
+
+### 5.2 Configuration
 
 All configuration is done via environment variables, which can be set in the `.env` file:
 
@@ -107,7 +149,7 @@ All configuration is done via environment variables, which can be set in the `.e
 | UNRESPONSIVE_TIMEOUT_MINUTES | Unresponsive status timeout in minutes | 5 |
 | RESET_TIMEOUT_HOURS | Reset timeout in hours | 3 |
 
-## 📊 Metrics
+### 5.3 Metrics
 
 The following metrics are generated:
 
@@ -126,27 +168,27 @@ The following metrics are generated:
 | project_status | Current project status | projectkey, status |
 | server_count | Count of servers | projectkey |
 
-## 💻 Usage
+### 5.4 Usage
 
 The application runs continuously, querying Loki for new logs at regular intervals and pushing metrics to Prometheus.
 
-### Command line
+#### Command line
 
 ```bash
 python loki_reader.py
 ```
 
-### Docker
+#### Docker
 
 ```bash
 docker run -d --name loki-reader --env-file .env loki-reader:latest
 ```
 
-### Kubernetes
+#### Kubernetes
 
 Once deployed with the `deploy-k8s.sh` or `deploy-k8s.bat` script, the application runs as a deployment in the specified namespace.
 
-## 🛠️ Architecture
+### 5.5 Architecture
 
 The application consists of several key components:
 
@@ -155,13 +197,13 @@ The application consists of several key components:
 3. **LokiLogReader**: Queries Loki for logs and processes the results
 4. **Prometheus Integration**: Pushes metrics to the Prometheus push gateway
 
-## 🔒 Security
+### 5.6 Security
 
 - The application uses environment variables for configuration
 - No authentication credentials are hardcoded
 - Network communication should be secured using HTTPS where applicable
 
-## 🧪 Testing
+### 5.7 Testing
 
 Manual testing can be performed by:
 
@@ -170,7 +212,7 @@ Manual testing can be performed by:
 3. Running the application with appropriate configuration
 4. Verifying metrics in Prometheus
 
-## 🤝 Contributing
+### 5.8 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -180,86 +222,98 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-
-# Helm Chart - Otel Loki Reader Monitoring Stack
+### 5.9 Helm Chart - Otel Loki Reader Monitoring Stack
 
 This Helm chart deploys a complete OpenTelemetry-based monitoring stack integrated with Loki and Prometheus. It includes components like Grafana, Loki, Promtail, Pushgateway, Prometheus, and a custom Loki Reader application that transforms logs into Prometheus metrics.
 
-## Prerequisites
-Kubernetes Cluster (MicroK8s, Minikube, etc.)
-Helm v3 or higher
-MetalLB (for LoadBalancer support if using MicroK8s)
+#### Prerequisites
+1. Kubernetes Cluster (MicroK8s, Minikube, etc.)
+2. Helm v3 or higher
+3. MetalLB (for LoadBalancer support if using MicroK8s)
 
-## Components
-Grafana: Dashboards UI
-Prometheus: Metrics collection
-Alertmanager: Alerting system
-Loki: Log storage backend
-Promtail: Log shipping agent
-Pushgateway: Push metrics endpoint
-Otel-Collector: Ingest metrics, logs, and traces
-Loki Reader: Converts logs to Prometheus metrics
+#### Components
+1. Grafana: Dashboards UI
+2. Prometheus: Metrics collection
+3. Alertmanager: Alerting system
+4. Loki: Log storage backend
+5. Promtail: Log shipping agent
+6. Pushgateway: Push metrics endpoint
+7. Otel-Collector: Ingest metrics, logs, and traces
+8. Loki Reader: Converts logs to Prometheus metrics
 
-## Installation
-Clone the repository:
-git clone https://github.com/naviteshvaswanimagic/magic_opentelemetrydashboard.git cd Otel-Loki-Reader/helm_chart/monitoring-stack
+#### Helm Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/naviteshvaswanimagic/magic_opentelemetrydashboard.git
+   cd Otel-Loki-Reader/helm_chart/monitoring-stack
+   ```
+2. Deploy the chart using:
+   ```bash
+   ./deploy-monitoring.sh
+   ```
+Or with plain Helm:
+   ```bash
+   helm install monitoring-stack . -n monitoring --create-namespace
+   ```
 
-## Deploy the chart using:
+#### Post-Installation
+1. To verify that everything is running:
+   ```bash
+   kubectl get pods -n monitoring
+   kubectl get svc -n monitoring
+   ```
 
-./deploy-monitoring.sh
+#### External Access
+1. Use the following commands to retrieve the service IPs:
+   - Grafana (Dashboards UI):
+     ```bash
+     kubectl get svc -n monitoring -l app.kubernetes.io/name=grafana
+     ```
+   - Loki Reader (Log aggregation):
+     ```bash
+     kubectl get svc -n monitoring -l app=loki-reader
+     ```
+   - Prometheus Pushgateway:
+     ```bash
+     kubectl get svc -n monitoring -l app=prometheus-pushgateway
+     ```
+   - OpenTelemetry Collector:
+     ```bash
+     kubectl get svc -n monitoring -l app.kubernetes.io/name=otel-collector
+     ```
 
-Or with 
+#### Grafana Login
+1. Username: admin
+2. Password: admin123
 
-## plain Helm:
+#### Customization
+1. You can customize the deployment by editing the values.yaml file or setting values inline:
+   ```bash
+   helm install monitoring-stack . -n monitoring -f values.yaml
+   ```
 
-helm install monitoring-stack . -n monitoring --create-namespace
+#### Upgrade
+1. To upgrade the stack after making changes:
+   ```bash
+   helm upgrade monitoring-stack . -n monitoring
+   ```
 
-## Post-Installation
-To verify that everything is running:
-kubectl get pods -n monitoring
-kubectl get svc -n monitoring
+#### Uninstall
+1. To remove all components:
+   ```bash
+   ./undeploy-monitoring.sh
+   ```
 
-## External Access
-Use the following commands to retrieve the service IPs:
+   Or use Helm directly:
+   ```bash
+   helm uninstall monitoring-stack -n monitoring
+   ```
 
-Grafana (Dashboards UI):
-kubectl get svc -n monitoring -l app.kubernetes.io/name=grafana
-
-Loki Reader (Log aggregation):
-kubectl get svc -n monitoring -l app=loki-reader
-
-Prometheus Pushgateway:
-kubectl get svc -n monitoring -l app=prometheus-pushgateway
-
-OpenTelemetry Collector:
-kubectl get svc -n monitoring -l app.kubernetes.io/name=otel-collector
-
-## Grafana Login
-Username: admin
-Password: admin123
-
-## Customization
-You can customize the deployment by editing the values.yaml file or setting values inline:
-helm install monitoring-stack . -n monitoring -f values.yaml
-
-## Upgrade
-To upgrade the stack after making changes:
-helm upgrade monitoring-stack . -n monitoring
-
-## Uninstall
-To remove all components:
-./undeploy-monitoring.sh
-
-Or use 
-
-## Helm directly:
-helm uninstall monitoring-stack -n monitoring
-
-## 📜 License
+### 5.10 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## ✉️ Contact
+### 5.11 Contact
 
 For questions or support, please open an issue on the GitHub repository. 
 
