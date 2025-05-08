@@ -1,0 +1,79 @@
+Loki Log Format – Integration & Support Guide
+This document explains how the JSON logs from Grafana Loki are expected to be structured, how they are consumed by our system, and what steps are required if the format changes.
+________________________________________
+1. Supported JSON Log Format
+The system expects logs in the following JSON format:
+{
+  "_class": "com.magicsoftware.xpi.info.data.ActivityLog",
+  "blobexists": 0,
+  "bpid": 0,
+  "category": " ",
+  "createTimeStamp": "2025-04-15T13:00:17.401Z",
+  "createdTimeInNanoSec": 3039412436378273,
+  "dateOfWritingToSpace": {},
+  "extension": " ",
+  "filelocation": " ",
+  "flowid": 0,
+  "flowrequestid": 0,
+  "fsid": 0,
+  "fsstep": 0,
+  "messagestring": " ",
+  "messagetypeid": 3,
+  "objectlevel": 2,
+  "projectkey": "new1",
+  "rootfsId": 0,
+  "runId": "d17c42aa-38f1-47c7-8bd9-ce89be24b4db",
+  "serverid": 62,
+  "severity": 0,
+  "statuscode": 0,
+  "timeZone": "US/Central",
+  "userblob": null,
+  "usercode": 0,
+  "userkey1": " ",
+  "userkey2": " ",
+  "versionkey": " "
+}
+These logs are extracted from the original log string using a Loki query that transforms this format:
+Body: Map({...})
+into plain JSON.
+________________________________________
+2. Loki Query – How JSON Is Extracted
+We use the following Loki query pipeline to extract and parse the JSON:
+{app="otel-collector"} 
+|~ `Body: Map\(` 
+| regexp `Body: Map\((?P<body>\{.*\})\)` 
+| line_format "{{.body}}" 
+| json
+Explanation:
+Component	Purpose
+regexp	Extracts JSON inside Map(...)
+line_format	Formats it into raw JSON
+json	Parses it as a structured JSON object
+________________________________________
+3. Python Code – Where JSON is Used
+Our backend service calls Loki and expects JSON in the format shown above. Logs are retrieved using:
+log_data = json.loads(log_line)
+Each log entry must be a valid JSON string. If the structure changes (e.g., additional wrappers or renaming), this step may fail unless adjusted.
+________________________________________
+4. If the JSON Format Changes – What You Need to Do
+Change in Log Format	Expected Change
+JSON is wrapped in a different key (e.g., Payload: Wrapper({...}))	Update the Loki query (regexp & line_format) to extract the correct part
+JSON keys are renamed or removed	Update the parser or downstream processors accordingly in code
+Log format is already JSON (no wrapper)	Remove regexp and line_format – use `json` only
+Non-JSON logs	Not supported – logs must be JSON-formatted
+________________________________________
+5. How to Validate the Format in Grafana
+To check if your query is returning structured JSON:
+1.	Go to Grafana → Explore.
+2.	Run your Loki query.
+3.	Check if fields are displayed in key-value form.
+o	If not, the logs are not properly parsed as JSON.
+4.	Ensure the final output looks like:
+{"key1": "value1", "key2": "value2", ...}
+________________________________________
+6. Recommendations
+•	Always keep logs in structured JSON format.
+•	Avoid adding custom wrappers around JSON unless necessary.
+•	If changes are made, update the Loki query to extract plain JSON.
+________________________________________
+

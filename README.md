@@ -19,6 +19,7 @@ The tool is particularly useful for monitoring server and application health by 
 
 - **Loki Log Collection**: Connects to Loki to query and extract log entries
 - **Metrics Generation**: Converts log data into time-series metrics
+- **Supported Formats**: [View supported logs formats](SUPPORTED_LOGS_FORMAT.md)
 - **Prometheus Integration**: Pushes metrics to Prometheus via push gateway
 - **Server Status Monitoring**: Tracks server status and detects unresponsive systems
 - **Project-level Aggregation**: Consolidates metrics from multiple servers into project-level summaries
@@ -261,3 +262,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## ✉️ Contact
 
 For questions or support, please open an issue on the GitHub repository. 
+
+<div align="center">
+Made with ❤️ by the Magic Team
+</div>
