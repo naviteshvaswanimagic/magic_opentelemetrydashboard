@@ -106,7 +106,7 @@ lokiReader:
   enabled: true
   name: loki-reader
   image:
-    repository: ghcr.io/indking/loki-reader
+    repository: ghcr.io/naviteshvaswanimagic/loki-reader
     tag: latest
     pullPolicy: Always
   replicaCount: 1

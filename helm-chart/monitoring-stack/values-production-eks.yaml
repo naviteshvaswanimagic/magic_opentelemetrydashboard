@@ -1,77 +1,105 @@
-# AWS EKS specific overrides for production environment
+# AWS EKS specific overrides for production
 
 # Global settings
 global:
-  environment: production
-  cluster: prod-cluster
+  cluster: eks-production
+  # Global storage class configuration
+  storageClass: "gp2"
 
-# Storage configuration for all components
+# Storage configuration for EKS
 storage:
-  storageClass: "gp2"  # AWS EBS GP2 storage class
+  storageClassName: "gp2"
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: "kubernetes.io/aws-ebs"
 
-# Service configuration for all components
+# Service configuration for EKS
 service:
-  type: LoadBalancer
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: nlb
-    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
-    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: ""  # Add your ACM ARN here if using HTTPS
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
 
-# Node selector and tolerations for all components
-nodeSelector:
-  kubernetes.io/os: linux
-  node-type: production
-tolerations:
-- key: "dedicated"
-  operator: "Equal"
-  value: "production"
-  effect: "NoSchedule"
-
-# Image pull secrets for ECR
+# AWS ECR configuration
 imagePullSecrets:
-- name: ecr-secret
+  - name: ecr-secret
 
-# Container registry configuration for all components
 image:
   registry: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
   pullPolicy: Always
 
 # AWS-specific resource tags
 tags:
-  Environment: production
   Platform: eks
   ManagedBy: helm
 
-# Override specific component settings if needed
+# Loki Stack configuration
 loki-stack:
   loki:
     persistence:
-      storageClassName: gp2
+      storageClassName: "gp2"
+      annotations:
+        volume.beta.kubernetes.io/storage-provisioner: "kubernetes.io/aws-ebs"
+      size: 10Gi
   promtail:
-    image:
-      registry: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+    securityContext:
+      runAsUser: 0
+      runAsGroup: 0
+    extraVolumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+    config:
+      clients:
+        - url: http://monitoring-stack-loki:3100/loki/api/v1/push
 
+# Prometheus configuration
 prometheus:
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+  # Force gp2 for all Prometheus volumes
+  storageSpec:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: "gp2"
   persistence:
-    storageClass: "gp2"
+    enabled: true
+    storageClassName: "gp2"
+    size: 20Gi
   server:
-    persistence:
-      storageClassName: gp2
-  service:
-    annotations:
-      service.beta.kubernetes.io/aws-load-balancer-type: nlb
-      service.beta.kubernetes.io/aws-load-balancer-internal: "true"
-  alertmanager:
-    persistence:
-      storageClassName: gp2
-  pushgateway:
-    persistence:
-      storageClassName: gp2
+    persistentVolume:
+      enabled: true
+      storageClassName: "gp2"
+      size: 20Gi
 
+# Grafana configuration
 grafana:
-  persistence:
-    storageClass: "gp2"
   service:
+    type: LoadBalancer
     annotations:
       service.beta.kubernetes.io/aws-load-balancer-type: nlb
-      service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+  persistence:
+    storageClassName: "gp2"
+  adminUser: admin
+  adminPassword: "admin123"
+
+# Alertmanager configuration
+alertmanager:
+  # Force gp2 for Alertmanager
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: "gp2"
+  persistentVolume:
+    enabled: true
+    storageClassName: "gp2"
+    size: 2Gi
