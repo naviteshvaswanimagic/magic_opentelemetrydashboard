@@ -6,18 +6,64 @@
 > A comprehensive OpenTelemetry monitoring solution that includes Loki, Prometheus, and Grafana, with additional custom components like loki-reader.
 
 ## 📑 Table of Contents
+
+### 📝 General Information
+- [Overview](#overview)
 - [Features](#-features)
+- [Components](#components)
+- [Loki Reader Image Options](#loki-reader-image-options)
+
+### 🛠️ Technical Details
 - [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage Guide](#usage-guide)
-- [Troubleshooting](#troubleshooting)
-- [Magic xpi OpenTelemetry Configuration](#magic-xpi-opentelemetry-configuration)
+- [Storage Classes](#storage-classes)
+- [Service Types](#service-types)
+- [Security Context](#security-context)
+
+### 🚀 Installation
+- [Quick Start](#quick-start)
+  - [AKS](#for-aks)
+  - [EKS](#for-eks)
+  - [Windows Development](#for-windows-development)
+  - [MicroK8s](#for-microk8s)
+- [Manual Installation](#manual-installation)
+- [Custom Configuration](#custom-configuration)
+- [Installation from OCI Registry](#installation-from-oci-registry)
+  - [Azure Container Registry (ACR)](#azure-container-registry-acr)
+  - [GitHub Container Registry (GHCR)](#github-container-registry-ghcr)
+
+### 🛠️ Configuration
+- [RBAC Configuration](#rbac-configuration)
+  - [Service Accounts](#service-accounts)
+  - [Roles and Permissions](#roles-and-permissions)
+  - [Cloud Provider IAM Integration](#cloud-provider-iam-integration)
+    - [AKS Workload Identity](#aks-workload-identity)
+    - [EKS IRSA (IAM Roles for Service Accounts)](#eks-irsa-iam-roles-for-service-accounts)
+
+### 📈 Usage Guide
+- [Accessing the Services](#accessing-the-services)
+  - [MicroK8s](#microk8s)
+  - [AKS](#aks)
+  - [EKS](#eks)
+- [Accessing Pod Logs](#accessing-pod-logs)
+  - [View Logs of a Specific Pod](#view-logs-of-a-specific-pod)
+  - [View Logs from Multi-Container Pods](#view-logs-from-multi-container-pods)
+
+### 🛠️ Troubleshooting
+- [Common Issues](#common-issues)
+- [Verification Steps](#verification-steps)
+
+### 📱 Magic xpi OpenTelemetry Configuration
+- [Configuration Steps](#configuration-steps)
+- [Verification](#verification)
 
 ## ✨ Features
+
 - Complete OpenTelemetry monitoring solution
 - Easy deployment using Helm charts
-- Support for multiple Kubernetes platforms (MicroK8s, AKS, EKS)
+- Support for multiple Kubernetes platforms:
+  - MicroK8s
+  - Azure Kubernetes Service (AKS)
+  - Amazon Elastic Kubernetes Service (EKS)
 - Real-time metrics and monitoring
 - Scalable architecture
 
@@ -31,30 +77,44 @@ This Helm chart provides a comprehensive monitoring solution that can be deploye
 ## Components
 
 - **Loki**: Log aggregation system
+  - Centralized log management
+  - Efficient query capabilities
+
 - **Prometheus**: Metrics collection and alerting
+  - Time-series data collection
+  - Robust alerting system
+
 - **Grafana**: Visualization and dashboarding
-- **Loki Reader**: Custom component for reading and processing logs from Loki
+  - Interactive dashboards
+  - Multiple data source support
+
+- **Loki Reader**: Custom component
+  - Reads and processes logs from Loki
+  - Custom implementation for specific needs
 
 ## Loki Reader Image Options
 
-You have two options for using the loki-reader component:
+### Build from Source
+- Use the `loki-reader` folder to build the Docker image from scratch
+- Recommended for custom implementations
+- Follow build instructions in the `loki-reader` folder
+- Refer to [View readme](loki-reader/README.md) for detailed instructions
 
-1. **Build from Source**
-   - Use the `loki-reader` folder to build the Docker image from scratch
-   - This option is recommended if you need to customize the loki-reader implementation
-   - Follow the build instructions in the `loki-reader` folder
-   - Please refer [View readme](loki-reader/README.md)
-
-2. **Use Pre-built Image**
-   - Use the pre-built loki-reader image included in the Helm chart
-   - This option is recommended for most users who want a quick deployment
-   - The pre-built image is optimized for performance and security
+### Use Pre-built Image
+- Included in the Helm chart
+- Recommended for quick deployments
+- Optimized for performance and security
 
 ## Prerequisites
 
-- Kubernetes cluster (MicroK8s, AKS, or EKS)
+### Required Tools
 - Helm 3.x
 - kubectl configured to access your cluster
+
+### Supported Kubernetes Platforms
+- MicroK8s
+- Azure Kubernetes Service (AKS)
+- Amazon Elastic Kubernetes Service (EKS)
 
 ## Installation
 
@@ -81,6 +141,38 @@ You have two options for using the loki-reader component:
 2. Install from ACR:
 ```bash
 helm install monitoring-stack oci://<ACR_NAME>.azurecr.io/helm/monitoring-stack --version <CHART_VERSION> -n monitoring --create-namespace --values monitoring-values/values-production.yaml --values monitoring-values/values-production-aks.yaml
+```
+
+#### For EKS
+1. First, download the required values files from GitHub:
+
+   Download these files directly from GitHub by clicking on the links below:
+   - [values-production.yaml](https://github.com/naviteshvaswanimagic/magic_opentelemetrydashboard/blob/DEV/helm-chart/monitoring-stack/values-production.yaml)
+   - [values-production-eks.yaml](https://github.com/naviteshvaswanimagic/magic_opentelemetrydashboard/blob/DEV/helm-chart/monitoring-stack/values-production-eks.yaml)
+
+   Save these files to a local directory (e.g., create a `monitoring-values` folder):
+   ```bash
+   # Create a directory for the values files
+   mkdir -p monitoring-values
+   
+   # Move your downloaded files to this directory
+   # For example, if files were downloaded to your Downloads folder:
+   # mv ~/Downloads/values-production*.yaml monitoring-values/
+   # mv ~/Downloads/values-production-eks.yaml monitoring-values/
+   ```
+
+2. Important: Ensure that the default storage class in your EKS cluster is gp2. If it's not, you'll need to make gp2 the default storage class using these commands:
+```powershell
+# First, make gp3 non-default if it's currently default
+kubectl patch storageclass gp3 -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+
+# Then make gp2 the default storage class
+kubectl patch storageclass gp2 -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+```
+
+3. Install from GitHub Container Registry:
+```bash
+helm install monitoring-stack oci://ghcr.io/naviteshvaswanimagic/monitoring-stack:0.1.4 -n monitoring --create-namespace --values monitoring-values/values-production.yaml --values monitoring-values/values-production-eks.yaml
 ```
 
 #### For Windows Development
